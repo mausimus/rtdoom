@@ -11,17 +11,28 @@ using std::cout, std::endl, std::string;
 
 void InitSDL(SDL_Renderer*& sdlRenderer, SDL_Window*& sdlWindow);
 void DestroySDL(SDL_Renderer* sdlRenderer, SDL_Window* sdlWindow);
+std::optional<std::string> FindWAD();
+
+#include "WADFile.h"
 
 int main(int /*argc*/, char** /*argv*/)
 {
 	try
 	{
+		auto wadFileName = FindWAD();
+		if (!wadFileName.has_value())
+		{
+			throw std::runtime_error("No WAD file found! Drop off a .wad from Doom or Freedoom to .exe directory.");
+		}
+		WADFile wadFile(wadFileName.value());
+		auto mapIter = wadFile.m_maps.begin();
+
 		SDL_Renderer *sdlRenderer;
 		SDL_Window *sdlWindow;
 		InitSDL(sdlRenderer, sdlWindow);
 
-		GameLoop gameLoop{ sdlRenderer };
-		gameLoop.Start("..\\maps\\freedoom-e4m1"s);
+		GameLoop gameLoop{ sdlRenderer, wadFile };
+		gameLoop.Start(mapIter->second);
 
 		SDL_Event event;
 		const static auto tickFrequency = SDL_GetPerformanceFrequency();
@@ -68,6 +79,18 @@ int main(int /*argc*/, char** /*argv*/)
 						break;
 					case SDLK_3:
 						gameLoop.SetRenderingMode(ViewRenderer::RenderingMode::Textured);
+						break;
+					case SDLK_m:
+						// next map
+						if (p)
+						{
+							mapIter++;
+							if (mapIter == wadFile.m_maps.end())
+							{
+								mapIter = wadFile.m_maps.begin();
+							}
+							gameLoop.Start(mapIter->second);
+						}
 						break;
 					case SDLK_d:
 						cout << "Player position: (" << gameLoop.Player().x << ", " << gameLoop.Player().y << ", " << gameLoop.Player().a << ")" << endl;
@@ -137,4 +160,16 @@ void DestroySDL(SDL_Renderer* sdlRenderer, SDL_Window* sdlWindow)
 	SDL_DestroyRenderer(sdlRenderer);
 	SDL_DestroyWindow(sdlWindow);
 	SDL_Quit();
+}
+
+std::optional<std::string> FindWAD()
+{
+	for (const auto & entry : std::filesystem::directory_iterator("."))
+	{
+		if (entry.is_regular_file() && entry.path().extension() == ".wad")
+		{
+			return entry.path().generic_string();
+		}
+	}
+	return std::nullopt;
 }

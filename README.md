@@ -6,13 +6,18 @@ An implementation of the Doom-style raycasting algorithm in modern C++.
 
 * from-scratch software-based rendering implementation (no 3D libraries used)
 * following originally used algorithms: BSP trees, no Z-buffer, in-place drawing
-* ability to use the original Doom map format
+* ability to load original Doom WAD files
 
 ### Screenshots
 
+Wireframe mode
 ![screenshot](screen1.png)
 
+Solid mode
 ![screenshot](screen2.png)
+
+Textured mode
+![screenshot](screen3.png)
 
 ### Goal
 
@@ -28,18 +33,21 @@ of algorithms used in the original game, most of which are replicated here.
 
 ### To Do
 
-* textures
 * sprites
 * clipping
-* parallelize!
+* optimize/parallelize!
 
 ### Code
 
 * [ViewRenderer.cpp](rtdoom/ViewRenderer.cpp) contains the core of the frame rendering algorithm
 
-Test program will render the view using SDL2, use arrow keys to move around and 1/2 to switch
-rendering modes, built on Windows / Visual Studio 2017 using C++ 17 profile.
+Test program uses SDL2 to render the raw framebuffer in a screen window, controls are:
+* arrow keys to move around
+* 1/2/3 to switch between render modes (Wireframe/Solid/Textured)
+* m to load the next map in the .WAD file
+* Escape to exit
+ 
+Built on Windows / Visual Studio 2017 using C++ 17 profile.
 
-For copyright reasons the bundled map is not from the original game but from
-the [Freedoom](https://freedoom.github.io/) project,
-you can point the code at map data from original Doom WADs however.
+No assets included - you will need to drop off a .WAD file from either from the original Doom (1 or 2) or
+the [Freedoom](https://freedoom.github.io/) project into the .exe directory!

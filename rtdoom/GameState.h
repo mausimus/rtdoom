@@ -11,7 +11,7 @@ namespace rtdoom
 		Thing m_player;
 
 		void Move(int m, int r, float step);
-		void NewGame(const std::string& mapFolder);
+		void NewGame(const MapStore& mapStore);
 
 		GameState();
 		~GameState();

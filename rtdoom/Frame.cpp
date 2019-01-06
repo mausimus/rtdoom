@@ -128,7 +128,9 @@ namespace rtdoom
 	}
 
 	// for a vertical segment, determine which section is visible and update occlusion map
-	Frame::Span Frame::ClipVerticalSegment(int x, int ceilingProjection, int floorProjection, bool isSolid, const float* ceilingHeight, const float* floorHeight)
+	Frame::Span Frame::ClipVerticalSegment(int x, int ceilingProjection, int floorProjection, bool isSolid,
+		const float* ceilingHeight, const float* floorHeight, const std::string& ceilingTexture, const std::string& floorTexture,
+		float lightLevel)
 	{
 		Frame::Span span;
 
@@ -142,7 +144,7 @@ namespace rtdoom
 			span.s = std::min(ceilingProjection, m_floorClip[x]);
 			if (ceilingHeight)
 			{
-				m_ceilingPlanes[x].push_back(Plane(*ceilingHeight, m_ceilClip[x], span.s));
+				m_ceilingPlanes[x].push_back(Plane(*ceilingHeight, m_ceilClip[x], span.s, ceilingTexture, lightLevel));
 			}
 		}
 		else
@@ -154,7 +156,7 @@ namespace rtdoom
 			span.e = std::max(floorProjection, m_ceilClip[x]);
 			if (floorHeight)
 			{
-				m_floorPlanes[x].push_back(Plane(*floorHeight, span.e, m_floorClip[x]));
+				m_floorPlanes[x].push_back(Plane(*floorHeight, span.e, m_floorClip[x], floorTexture, lightLevel));
 			}
 		}
 		else

@@ -27,6 +27,22 @@ namespace rtdoom
 		return Vector(normalAngle, abs(normalDistance));
 	}
 
+	float Projection::NormalOffset(const Line& l) const
+	{
+		auto lineAngle = MathCache::instance().ArcTan(l.e.y - l.s.y, l.e.x - l.s.x); // 0 is towards positive X axis, clockwise, (0,0) is top-left
+		auto normalAngle = lineAngle + PI2;
+		auto sx = l.s.x - m_player.x;
+		auto sy = l.s.y - m_player.y;
+		auto startDistance = sqrt(sx * sx + sy * sy);
+		auto startAngle = MathCache::instance().ArcTan(sy, sx);
+		auto normalOffset = fabs(startDistance * MathCache::instance().Sin(normalAngle - startAngle));
+		if (NormalizeAngle(normalAngle - startAngle) > 0)
+		{
+			normalOffset *= -1;
+		}
+		return normalOffset;
+	}
+
 	// relative projected view a for a map point
 	Angle Projection::ProjectionAngle(const Point& p) const
 	{
@@ -40,8 +56,21 @@ namespace rtdoom
 		auto inverseNormalAngle = normalVector.a - PI;
 		auto viewRelativeAngle = NormalizeAngle(inverseNormalAngle - (m_player.a + viewAngle));
 		auto interceptDistance = normalVector.d / MathCache::instance().Cos(viewRelativeAngle);
-
 		return abs(MathCache::instance().Cos(viewAngle) * interceptDistance);
+	}
+
+	// texture offset vs normal intercept
+	float Projection::Offset(const Vector& normalVector, Angle viewAngle) const
+	{
+		auto inverseNormalAngle = normalVector.a - PI;
+		auto viewRelativeAngle = NormalizeAngle(inverseNormalAngle - (m_player.a + viewAngle));
+		auto interceptDistance = normalVector.d / MathCache::instance().Cos(viewRelativeAngle);
+		auto offset = fabsf(interceptDistance * MathCache::instance().Sin(viewRelativeAngle));
+		if (viewRelativeAngle > 0)
+		{
+			offset *= -1;
+		}
+		return offset;
 	}
 
 	float Projection::PlaneDistance(int y, float height) const noexcept
@@ -102,7 +131,6 @@ namespace rtdoom
 		return MathCache::instance().ArcTan(fractionX * PI4);
 	}
 
-	// convert eye a (-PI4..PI4) view to screen X coordinate
 	int Projection::ViewY(float distance, float height) const noexcept
 	{
 		auto dc = (m_viewHeight * 30.0f) / distance;
@@ -113,6 +141,13 @@ namespace rtdoom
 			return m_midPointY - dy;
 		}
 		return m_midPointY + dy;
+	}
+
+	float Projection::TextureScale(float distance, float height) const noexcept
+	{
+		auto dc = (m_viewHeight * 30.0f) / distance;
+		auto hf = fabsf(height / 23.0f);
+		return (dc*hf);
 	}
 
 	bool Projection::NormalizeViewAngleSpan(Angle &startAngle, Angle &endAngle) noexcept

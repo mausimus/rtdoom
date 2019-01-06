@@ -27,7 +27,7 @@ namespace rtdoom
 		constexpr int MapScale(int windowSize) const;
 
 	public:
-		void Start(const std::string& mapFolder);
+		void Start(const MapStore& mapStore);
 		void Stop();
 		bool isRunning() const { return m_isRunning; }
 
@@ -41,7 +41,7 @@ namespace rtdoom
 
 		const Thing& Player() const { return m_gameState.m_player; }
 
-		GameLoop(SDL_Renderer* sdlRenderer);
+		GameLoop(SDL_Renderer* sdlRenderer, const WADFile& wadFile);
 		~GameLoop();
 	};
 }

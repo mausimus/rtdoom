@@ -8,15 +8,27 @@ using std::string;
 
 namespace rtdoom
 {
+	MapDef::MapDef(const MapStore& mapStore) :
+		m_store{ mapStore }
+	{
+		OpenDoors();
+		BuildWireframe();
+	}
+
 	MapDef::MapDef(const string& mapFolder)
 	{
 		m_store.Load(mapFolder);
+		OpenDoors();
+		BuildWireframe();
+	}
 
+	void MapDef::OpenDoors()
+	{
 		// open all doors on the map
 		std::set<int> doorSectors;
 		for (const auto& lineDef : m_store.m_lineDefs)
 		{
-			if (lineDef.lineType == 1 && lineDef.leftSideDef < 32000)
+			if ((lineDef.lineType == 1 || lineDef.lineType == 31) && lineDef.leftSideDef < 32000) // TODO: all door linedefs
 			{
 				const auto& backSide = m_store.m_sideDefs[lineDef.leftSideDef];
 				doorSectors.insert(backSide.sector);
@@ -24,7 +36,7 @@ namespace rtdoom
 		}
 		for (auto doorSector : doorSectors)
 		{
-			m_store.m_sectors[doorSector].ceilingHeight = m_store.m_sectors[doorSector].floorHeight + 72;
+			m_store.m_sectors[doorSector].ceilingHeight = m_store.m_sectors[doorSector].floorHeight + 72; // TODO: 4 less than the lowest neighbouring sector
 		}
 	}
 
@@ -72,7 +84,7 @@ namespace rtdoom
 		unsigned short pa;
 		m_store.GetStartingPosition(px, py, pa);
 
-		Thing player(static_cast<float>(px), static_cast<float>(py), 45, PI2);
+		Thing player(static_cast<float>(px), static_cast<float>(py), 0, static_cast<float>(pa / 180.0f * PI));
 
 		return player;
 	}
@@ -114,6 +126,16 @@ namespace rtdoom
 			Vertex{ node.partitionX + node.deltaX, node.partitionY + node.deltaY } });
 	}
 
+	void MapDef::BuildWireframe()
+	{
+		for (const auto& l : m_store.m_lineDefs)
+		{
+			const auto& sv = m_store.m_vertexes[l.startVertex];
+			const auto& ev = m_store.m_vertexes[l.endVertex];
+			m_wireframe.push_back(Line(Vertex(sv.x, sv.y), Vertex(ev.x, ev.y)));
+		}
+	}
+
 	// process serialized map format into usable structures
 	void MapDef::ProcessSubsector(const MapStore::SubSector& subSector, deque<Segment>& segments) const
 	{
@@ -128,28 +150,36 @@ namespace rtdoom
 			bool isSolid = false;
 			const auto& lineDef = m_store.m_lineDefs[mapSegment.lineDef];
 			Sector frontSector, backSector;
+			MapStore::SideDef frontSide, backSide;
 			if (mapSegment.direction == 1 && lineDef.leftSideDef < 32000)
 			{
 				isSolid = m_store.m_sideDefs[lineDef.leftSideDef].middleTexture[0] != 45 && lineDef.lineType != 1; // open doors
 
-				frontSector = Sector{ m_store.m_sectors[m_store.m_sideDefs[lineDef.leftSideDef].sector] };
+				frontSide = m_store.m_sideDefs[lineDef.leftSideDef];
+				frontSector = Sector{ m_store.m_sectors[frontSide.sector] };
 				if (lineDef.rightSideDef < 32000)
 				{
-					backSector = Sector{ m_store.m_sectors[m_store.m_sideDefs[lineDef.rightSideDef].sector] };
+					backSide = m_store.m_sideDefs[lineDef.rightSideDef];
+					backSector = Sector{ m_store.m_sectors[backSide.sector] };
 				}
 			}
 			else if (mapSegment.direction == 0 && lineDef.rightSideDef < 32000)
 			{
 				isSolid = m_store.m_sideDefs[lineDef.rightSideDef].middleTexture[0] != 45 && lineDef.lineType != 1; // open doors
 
-				frontSector = Sector{ m_store.m_sectors[m_store.m_sideDefs[lineDef.rightSideDef].sector] };
+				frontSide = m_store.m_sideDefs[lineDef.rightSideDef];
+				frontSector = Sector{ m_store.m_sectors[frontSide.sector] };
 				if (lineDef.leftSideDef < 32000)
 				{
-					backSector = Sector{ m_store.m_sectors[m_store.m_sideDefs[lineDef.leftSideDef].sector] };
+					backSide = m_store.m_sideDefs[lineDef.leftSideDef];
+					backSector = Sector{ m_store.m_sectors[backSide.sector] };
 				}
 			}
 
-			Segment seg{ s, e, isSolid, frontSector, backSector };
+			Side front{ frontSector, Utils::MakeString(frontSide.lowerTexture), Utils::MakeString(frontSide.middleTexture), Utils::MakeString(frontSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
+			Side back{ backSector, Utils::MakeString(backSide.lowerTexture), Utils::MakeString(backSide.middleTexture), Utils::MakeString(backSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
+
+			Segment seg{ s, e, isSolid, front, back, mapSegment.offset, (bool)(lineDef.flags & 0x0010), (bool)(lineDef.flags & 0x0008) };
 			segments.push_back(seg);
 		}
 	}

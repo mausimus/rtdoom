@@ -20,6 +20,7 @@ namespace rtdoom
 		std::array<float, s_precision + 1> _tan;
 		std::array<float, s_precision + 1> _atan;
 		std::array<float, s_precision + 1> _cos;
+		std::array<float, s_precision + 1> _sin;
 
 	public:
 		static const MathCache& instance();
@@ -27,6 +28,7 @@ namespace rtdoom
 		float ArcTan(float x) const;
 		float ArcTan(float dy, float dx) const;
 		float Cos(float x) const;
+		float Sin(float x) const;
 		float Tan(float x) const;
 	};
 }

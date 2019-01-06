@@ -3,7 +3,7 @@
 
 namespace rtdoom
 {
-	FrameBuffer32::FrameBuffer32(int width, int height) : FrameBuffer{ width, height }
+	FrameBuffer32::FrameBuffer32(int width, int height, const Palette& palette) : FrameBuffer{ width, height, palette }
 	{
 	}
 
@@ -40,13 +40,14 @@ namespace rtdoom
 				}
 				else
 				{
+					lightness = Gamma(lightness);
 					pixel.argb8.r = static_cast<unsigned char>(pixel.argb8.r * lightness);
 					pixel.argb8.g = static_cast<unsigned char>(pixel.argb8.g * lightness);
 					pixel.argb8.b = static_cast<unsigned char>(pixel.argb8.b * lightness);
 				}
 			}
 
-			auto offset = m_width * sy + x;
+			auto offset = m_width * sy + (m_width - x - 1);
 			for (auto y = sy; y <= ey; y++)
 			{
 				m_pixels[offset].argb32 = pixel.argb32;
@@ -59,11 +60,14 @@ namespace rtdoom
 	{
 		if (m_pixels != nullptr && x >= 0 && y >= 0 && x < m_width && y < m_height)
 		{
-			auto color = s_colors.at(colorIndex % s_colors.size());
-			const auto offset = m_width * y + x;
+			auto color = m_palette.colors[colorIndex];
+			const auto offset = m_width * y + (m_width - x - 1);
 
 			Pixel32& pixel = m_pixels[offset];
-			pixel.argb32 = color;
+			pixel.argb8.a = 0;
+			pixel.argb8.r = color.r;
+			pixel.argb8.g = color.g;
+			pixel.argb8.b = color.b;
 
 			if (lightness < 1)
 			{
@@ -73,6 +77,7 @@ namespace rtdoom
 				}
 				else
 				{
+					lightness = Gamma(lightness);
 					pixel.argb8.r = static_cast<unsigned char>(pixel.argb8.r * lightness);
 					pixel.argb8.g = static_cast<unsigned char>(pixel.argb8.g * lightness);
 					pixel.argb8.b = static_cast<unsigned char>(pixel.argb8.b * lightness);

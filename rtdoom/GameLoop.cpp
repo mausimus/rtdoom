@@ -3,15 +3,15 @@
 
 namespace rtdoom
 {
-	GameLoop::GameLoop(SDL_Renderer* sdlRenderer) :
+	GameLoop::GameLoop(SDL_Renderer* sdlRenderer, const WADFile& wadFile) :
 		m_gameState{},
 		m_moveDirection{ 0 },
 		m_rotateDirection{ 0 },
 		m_isRunning{ false },
-		m_viewRenderer{ m_gameState },
-		m_playerViewport{ sdlRenderer, m_viewRenderer, ViewScale(s_displayX), ViewScale(s_displayY), true },
+		m_viewRenderer{ m_gameState, wadFile },
+		m_playerViewport{ sdlRenderer, m_viewRenderer, ViewScale(s_displayX), ViewScale(s_displayY), wadFile.m_palette, true },
 		m_mapRenderer{ m_gameState },
-		m_mapViewport{ sdlRenderer, m_mapRenderer, MapScale(s_displayX), MapScale(s_displayY), false }
+		m_mapViewport{ sdlRenderer, m_mapRenderer, MapScale(s_displayX), MapScale(s_displayY), wadFile.m_palette, false }
 	{
 	}
 
@@ -44,7 +44,10 @@ namespace rtdoom
 	void GameLoop::Tick(float seconds)
 	{
 		m_gameState.Move(m_moveDirection, m_rotateDirection, seconds);
-		m_gameState.m_player.z = m_viewRenderer.GetLastFrame()->m_drawnSectors[0].floorHeight + 45;
+		if (m_viewRenderer.GetLastFrame()->m_drawnSectors.size())
+		{
+			m_gameState.m_player.z = m_viewRenderer.GetLastFrame()->m_drawnSectors[0].floorHeight + 45;
+		}
 	}
 
 	void GameLoop::ResizeWindow(int width, int height)
@@ -58,9 +61,9 @@ namespace rtdoom
 		m_viewRenderer.SetMode(renderingMode);
 	}
 
-	void GameLoop::Start(const std::string& mapFolder)
+	void GameLoop::Start(const MapStore& mapStore)
 	{
-		m_gameState.NewGame(mapFolder);
+		m_gameState.NewGame(mapStore);
 		m_isRunning = true;
 	}
 
