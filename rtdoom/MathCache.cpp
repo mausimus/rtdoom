@@ -10,6 +10,7 @@ namespace rtdoom
 			_tan[i] = tanf(i * PI4 / s_precision);
 			_atan[i] = atanf(i * PI4 / s_precision);
 			_cos[i] = cosf(i * 2.0f * PI / s_precision);
+			_sin[i] = sinf(i * 2.0f * PI / s_precision);
 		}
 	}
 
@@ -93,8 +94,26 @@ namespace rtdoom
 		{
 			return cosf(x);
 		}
-		auto v = static_cast<size_t>(fabsf(x) / (2 * PI) * s_precision);
+		while (x < 2 * PI)
+		{
+			x += 2 * PI;
+		}
+		auto v = static_cast<size_t>(x / (2 * PI) * s_precision);
 		return _cos[v % (s_precision + 1)];
+	}
+
+	float MathCache::Sin(float x) const
+	{
+		if constexpr (!s_useCache)
+		{
+			return sinf(x);
+		}
+		while (x < 2 * PI)
+		{
+			x += 2 * PI;
+		}
+		auto v = static_cast<size_t>(x / (2 * PI) * s_precision);
+		return _sin[v % (s_precision + 1)];
 	}
 
 	float MathCache::Tan(float x) const

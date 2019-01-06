@@ -21,6 +21,29 @@ namespace rtdoom
 			return items;
 		}
 
+		template<typename T> static std::vector<T> LoadEntities(const std::vector<char>& data)
+		{
+			int dataIndex = 0;
+			std::vector<T> items;
+			T v;
+			while (dataIndex < data.size())
+			{
+				memcpy(&v, data.data() + dataIndex, sizeof(T));
+				items.push_back(v);
+				dataIndex += sizeof(T);
+			}
+			return items;
+		}
+
+		template<typename T> static void LoadEntity(const std::vector<char>& data, T * entity)
+		{
+			memcpy(entity, data.data(), sizeof(T));
+		}
+
+		static std::string MakeString(const char data[8]);
+
+		static int Clip(int v, int max);
+
 		Utils();
 		~Utils();
 	};

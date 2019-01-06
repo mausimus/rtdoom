@@ -21,9 +21,12 @@ namespace rtdoom
 
 		int ViewX(Angle viewAngle) const noexcept;
 		int ViewY(float distance, float height) const noexcept;
+		float TextureScale(float distance, float height) const noexcept;
 		Angle ViewAngle(int screenX) const noexcept;
 		Vector NormalVector(const Line& l) const;
+		float NormalOffset(const Line& l) const;
 		float Distance(const Vector& normalVector, Angle viewAngle) const;
+		float Offset(const Vector& normalVector, Angle viewAngle) const;
 		float PlaneDistance(int y, float height) const noexcept;
 		Angle ProjectionAngle(const Point& p) const;
 

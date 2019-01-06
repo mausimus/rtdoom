@@ -28,13 +28,9 @@ namespace rtdoom
 	{
 		frameBuffer.Clear();
 
-		int n = 0;
-		auto segments = m_gameState.m_mapDef->GetSegmentsToDraw(m_gameState.m_player);
-		float sc = static_cast<float>((segments.size() / 4) + 1);
-		for (const auto& l : segments)
+		for (const auto& l : m_gameState.m_mapDef->m_wireframe)
 		{
-			DrawMapLine(l.s, l.e, 1.0f - n / sc, frameBuffer);
-			n++;
+			DrawMapLine(l.s, l.e, 1.0f, frameBuffer);
 		}
 
 		// player position

@@ -20,8 +20,10 @@ namespace rtdoom
 
 		struct Plane
 		{
-			constexpr Plane(float h, int s, int e) : h{ h }, s{ s }, e{ e } {}
+			Plane(float h, int s, int e, std::string textureName, float lightLevel) : h{ h }, s{ s }, e{ e }, textureName{ textureName }, lightLevel{ lightLevel } {}
 			bool isSky() const { return isnan(h); }
+			std::string textureName;
+			float lightLevel;
 			float h;
 			int s;
 			int e;
@@ -48,7 +50,8 @@ namespace rtdoom
 		std::vector<Span> ClipHorizontalSegment(int startX, int endX, bool isSolid);
 
 		// returns the vertical screen span where the column is visible and updates occlussion table
-		Span ClipVerticalSegment(int x, int ceilingProjection, int floorProjection, bool isSolid, const float* ceilingHeight, const float* floorHeight);
+		Span ClipVerticalSegment(int x, int ceilingProjection, int floorProjection, bool isSolid,
+			const float* ceilingHeight, const float* floorHeight, const std::string& ceilingTexture, const std::string& floorTexture, float lightLevel);
 
 		bool IsHorizontallyOccluded() const;
 		bool IsVerticallyOccluded(int x) const;

@@ -4,9 +4,10 @@
 
 namespace rtdoom
 {
-	Viewport::Viewport(SDL_Renderer* sdlRenderer, Renderer& renderer, int width, int height, bool fillTarget) :
+	Viewport::Viewport(SDL_Renderer* sdlRenderer, Renderer& renderer, int width, int height, const Palette& palette, bool fillTarget) :
 		m_sdlRenderer(sdlRenderer),
 		m_renderer(renderer),
+		m_palette(palette),
 		m_width(width),
 		m_height(height),
 		m_fillTarget(fillTarget)
@@ -30,7 +31,7 @@ namespace rtdoom
 			throw std::runtime_error("Unable to create texture");
 		}
 
-		m_frameBuffer.reset(new FrameBuffer32(m_width, m_height));
+		m_frameBuffer.reset(new FrameBuffer32(m_width, m_height, m_palette));
 
 		if (!m_fillTarget)
 		{

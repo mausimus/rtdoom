@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rtdoom.h"
+#include "Utils.h"
 #include "MapStore.h"
 
 namespace rtdoom
@@ -8,7 +9,7 @@ namespace rtdoom
 	struct Point
 	{
 		constexpr Point(float x, float y) : x{ x }, y{ y } {}
-		
+
 		float x;
 		float y;
 	};
@@ -22,52 +23,77 @@ namespace rtdoom
 	struct Location : Point
 	{
 		constexpr Location(float x, float y, float z) : Point{ x, y }, z{ z } {}
-		
+
 		float z;
 	};
 
 	struct Thing : Location
 	{
 		constexpr Thing(float x, float y, float z, Angle a) : Location{ x, y, z }, a{ a } {}
-		
+
 		Angle a;
 	};
 
 	struct Line
 	{
 		constexpr Line(Vertex s, Vertex e) : s{ s }, e{ e } {}
-		
+
 		Vertex s;
 		Vertex e;
 	};
 
 	struct Sector
 	{
-		constexpr Sector(float floorHeight, float ceilingHeight, bool isSky) :
-			floorHeight{ floorHeight }, ceilingHeight{ ceilingHeight }, isSky{ isSky } {}
-		constexpr Sector() : Sector{ 0, 0, false } {}
+		Sector() {}
 
 		Sector(const MapStore::Sector& s) :
 			floorHeight{ static_cast<float>(s.floorHeight) },
 			ceilingHeight{ static_cast<float>(s.ceilingHeight) },
+			ceilingTexture{ Utils::MakeString(s.ceilingTexture) },
+			floorTexture{ Utils::MakeString(s.floorTexture) },
+			lightLevel{ s.lightLevel / 255.0f },
 			isSky{ strcmp(s.ceilingTexture, "F_SKY1") == 0 } {}
 
+		std::string ceilingTexture;
+		std::string floorTexture;
 		float floorHeight;
 		float ceilingHeight;
+		float lightLevel;
 		bool isSky;
+	};
+
+	struct Side
+	{
+		Side(Sector sector, const std::string lowerTexture, const std::string middleTexture, const std::string upperTexture, int xOffset, int yOffset) :
+			sector{ sector }, lowerTexture{ lowerTexture }, middleTexture{ middleTexture }, upperTexture{ upperTexture }, xOffset{ xOffset }, yOffset{ yOffset }
+		{
+		}
+
+		Sector sector;
+		int xOffset;
+		int yOffset;
+		std::string lowerTexture;
+		std::string upperTexture;
+		std::string middleTexture;
 	};
 
 	struct Segment : Line
 	{
-		constexpr Segment(Vertex s, Vertex e, bool isSolid, Sector frontSector, Sector backSector) :
-			Line{ s, e }, isSolid{ isSolid }, frontSector{ frontSector }, backSector{ backSector } {}
+		Segment(Vertex s, Vertex e, bool isSolid, Side frontSide, Side backSide, int xOffset, bool lowerUnpegged, bool upperUnpegged) :
+			Line{ s, e }, isSolid{ isSolid }, frontSide{ frontSide }, backSide{ backSide }, xOffset{ xOffset },
+			lowerUnpegged{ lowerUnpegged }, upperUnpegged{ upperUnpegged },
+			length{ sqrt((e.x - s.x) * (e.x - s.x) + (e.y - s.y) * (e.y - s.y)) } {}
 
 		bool isSolid;
-		Sector frontSector;
-		Sector backSector;
+		Side frontSide;
+		Side backSide;
+		int xOffset;
+		bool lowerUnpegged;
+		bool upperUnpegged;
+		float length;
 
-		const bool isHorizontal = s.y == e.y;
-		const bool isVertical = s.x == e.x;
+		bool isHorizontal = s.y == e.y;
+		bool isVertical = s.x == e.x;
 	};
 
 	struct Vector

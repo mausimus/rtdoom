@@ -100,6 +100,7 @@ namespace rtdoom
 		std::vector<Thing> m_things;
 
 		void Load(const std::string& mapFolder);
+		void Load(const std::map<std::string, std::vector<char>>& mapLumps);
 		void GetStartingPosition(signed short& x, signed short& y, unsigned short& a) const;
 
 		MapStore();

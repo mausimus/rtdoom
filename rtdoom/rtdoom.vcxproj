@@ -179,6 +179,7 @@
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Viewport.h" />
     <ClInclude Include="ViewRenderer.h" />
+    <ClInclude Include="WADFile.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Frame.cpp" />
@@ -202,6 +203,7 @@
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Viewport.cpp" />
     <ClCompile Include="ViewRenderer.cpp" />
+    <ClCompile Include="WADFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

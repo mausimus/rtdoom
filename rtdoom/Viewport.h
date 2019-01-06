@@ -18,6 +18,7 @@ namespace rtdoom
 		SDL_Texture* m_screenTexture;
 		Renderer& m_renderer;
 
+		const Palette& m_palette;
 		std::unique_ptr<SDL_Rect> m_targetRect;
 		std::unique_ptr<FrameBuffer> m_frameBuffer;
 
@@ -25,7 +26,7 @@ namespace rtdoom
 		void Uninitialize();
 
 	public:
-		Viewport(SDL_Renderer* sdlRenderer, Renderer& renderer, int width, int height, bool fillTarget);
+		Viewport(SDL_Renderer* sdlRenderer, Renderer& renderer, int width, int height, const Palette& palette, bool fillTarget);
 		void Resize(int width, int height);
 		void Draw();
 		~Viewport();
