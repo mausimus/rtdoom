@@ -49,5 +49,5 @@ Test program uses SDL2 to render the raw framebuffer in a screen window, control
  
 Built on Windows / Visual Studio 2017 using C++ 17 profile.
 
-No assets included - you will need to drop off a .WAD file from either from the original Doom (1 or 2) or
+No assets included - you will need to drop off a .wad file from either the original Doom (1 or 2) or
 the [Freedoom](https://freedoom.github.io/) project into the .exe directory!
