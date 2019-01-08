@@ -27,6 +27,7 @@ namespace rtdoom
 		return Vector(normalAngle, abs(normalDistance));
 	}
 
+	// distance the starting edge of the line to its normal vector start
 	float Projection::NormalOffset(const Line& l) const
 	{
 		auto lineAngle = MathCache::instance().ArcTan(l.e.y - l.s.y, l.e.x - l.s.x); // 0 is towards positive X axis, clockwise, (0,0) is top-left
@@ -131,6 +132,7 @@ namespace rtdoom
 		return MathCache::instance().ArcTan(fractionX * PI4);
 	}
 
+	// vertical screen position for given distance and height difference
 	int Projection::ViewY(float distance, float height) const noexcept
 	{
 		auto dc = (m_viewHeight * 30.0f) / distance;
@@ -143,13 +145,15 @@ namespace rtdoom
 		return m_midPointY + dy;
 	}
 
+	// scaling factor for texturing
 	float Projection::TextureScale(float distance, float height) const noexcept
 	{
 		auto dc = (m_viewHeight * 30.0f) / distance;
 		auto hf = fabsf(height / 23.0f);
-		return (dc*hf);
+		return dc * hf;
 	}
 
+	// trim angles for a visible span
 	bool Projection::NormalizeViewAngleSpan(Angle &startAngle, Angle &endAngle) noexcept
 	{
 		if (abs(AngleDist(startAngle, endAngle)) > PI)

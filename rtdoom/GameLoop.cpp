@@ -35,19 +35,31 @@ namespace rtdoom
 		m_rotateDirection = rotateDirection;
 	}
 
-	void GameLoop::RenderFrame()
+	const Frame* GameLoop::RenderFrame()
 	{
 		m_playerViewport.Draw();
 		m_mapViewport.Draw();
+		return m_viewRenderer.GetLastFrame();
+	}
+
+	void GameLoop::ClipPlayer()
+	{
+		const auto& sector = m_gameState.m_mapDef->GetSector(Point(m_gameState.m_player.x, m_gameState.m_player.y));
+		if (sector.has_value())
+		{
+			m_gameState.m_player.z = sector.value().floorHeight + 45;
+		}
+	}
+
+	void GameLoop::StepFrame()
+	{
+		m_viewRenderer.StepFrame();
 	}
 
 	void GameLoop::Tick(float seconds)
 	{
 		m_gameState.Move(m_moveDirection, m_rotateDirection, seconds);
-		if (m_viewRenderer.GetLastFrame()->m_drawnSectors.size())
-		{
-			m_gameState.m_player.z = m_viewRenderer.GetLastFrame()->m_drawnSectors[0].floorHeight + 45;
-		}
+		ClipPlayer();
 	}
 
 	void GameLoop::ResizeWindow(int width, int height)
@@ -64,6 +76,7 @@ namespace rtdoom
 	void GameLoop::Start(const MapStore& mapStore)
 	{
 		m_gameState.NewGame(mapStore);
+		ClipPlayer();
 		m_isRunning = true;
 	}
 

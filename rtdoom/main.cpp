@@ -80,6 +80,9 @@ int main(int /*argc*/, char** /*argv*/)
 					case SDLK_3:
 						gameLoop.SetRenderingMode(ViewRenderer::RenderingMode::Textured);
 						break;
+					case SDLK_s:
+						gameLoop.StepFrame();
+						break;
 					case SDLK_m:
 						// next map
 						if (p)
@@ -100,7 +103,7 @@ int main(int /*argc*/, char** /*argv*/)
 				}
 			}
 
-			gameLoop.RenderFrame();
+			const Frame* frame = gameLoop.RenderFrame();
 			SDL_RenderPresent(sdlRenderer);
 
 			const auto nextCounter = SDL_GetPerformanceCounter();
@@ -109,7 +112,8 @@ int main(int /*argc*/, char** /*argv*/)
 			gameLoop.Tick(seconds);
 
 #if _DEBUG
-			cout << "Frame time: " << seconds * 1000.0 << "ms" << endl;
+			cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " << 
+				frame->m_numFloorPlanes << "+" << frame->m_numCeilingPlanes << " planes" << endl;
 #endif
 		}
 
@@ -132,7 +136,7 @@ void InitSDL(SDL_Renderer*& sdlRenderer, SDL_Window*& sdlWindow)
 
 	atexit(SDL_Quit);
 
-	if constexpr (s_multisamplingLevel != 1.0f)
+	if constexpr (s_multisamplingLevel > 1.0f)
 	{
 		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 	}

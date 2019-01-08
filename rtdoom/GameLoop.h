@@ -34,7 +34,9 @@ namespace rtdoom
 		void Move(int moveDirection);
 		void Rotate(int rotateDirection);
 
-		void RenderFrame();
+		const Frame* RenderFrame();
+		void ClipPlayer();
+		void StepFrame();
 		void Tick(float seconds);
 		void ResizeWindow(int width, int height);
 		void SetRenderingMode(ViewRenderer::RenderingMode renderingMode);
