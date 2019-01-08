@@ -1,23 +1,25 @@
 #include "pch.h"
 #include "Frame.h"
 
+using std::vector;
+using std::deque;
+using std::string;
+
 namespace rtdoom
 {
 	Frame::Frame(const FrameBuffer& frameBuffer) :
 		m_width{ frameBuffer.m_width },
 		m_height{ frameBuffer.m_height },
 		m_floorClip(frameBuffer.m_width + 1, frameBuffer.m_height),
-		m_ceilClip(frameBuffer.m_width + 1, -1),
-		m_ceilingPlanes{ frameBuffer.m_width + 1 },
-		m_floorPlanes{ frameBuffer.m_width + 1 }
+		m_ceilClip(frameBuffer.m_width + 1, -1)
 	{
 	}
 
-	// for a horizontal segment, determine which columns will be visible based on already occludded map
-	// if the segment is isSolid, update occlussion map otherwise only clip
-	std::vector<Frame::Span> Frame::ClipHorizontalSegment(int startX, int endX, bool isSolid)
+	// for a horizontal mapSegment, determine which columns will be visible based on already occludded map
+	// if the mapSegment is isSolid, update occlussion map otherwise only clip
+	vector<Frame::Span> Frame::ClipHorizontalSegment(int startX, int endX, bool isSolid)
 	{
-		std::vector<Frame::Span> visibleSpans;
+		vector<Frame::Span> visibleSpans;
 
 		startX = std::max(startX, 0);
 		endX = std::max(endX, 0);
@@ -127,7 +129,23 @@ namespace rtdoom
 		return m_floorClip[x] <= m_ceilClip[x];
 	}
 
-	// for a vertical segment, determine which section is visible and update occlusion map
+	// add a vertical span into planes list
+	void Frame::MergeIntoPlane(deque<Plane>& planes, float height, const std::string& textureName, float lightLevel, int x, int sy, int ey)
+	{
+		if (IsSpanVisible(x, sy, ey))
+		{
+			auto plane = std::find_if(planes.begin(), planes.end(), [&](const Plane& plane) { return (plane.h == height || (!isfinite(plane.h) && !isfinite(height))) &&
+				plane.lightLevel == lightLevel && plane.textureName == textureName; });
+			if (plane == planes.end())
+			{
+				planes.push_front(Plane(height, textureName, lightLevel, m_height));
+				plane = planes.begin();
+			}
+			plane->addSpan(x, std::max(sy, 0), std::min(ey, m_height - 1));
+		}
+	}
+
+	// for a vertical mapSegment, determine which section is visible and update occlusion map
 	Frame::Span Frame::ClipVerticalSegment(int x, int ceilingProjection, int floorProjection, bool isSolid,
 		const float* ceilingHeight, const float* floorHeight, const std::string& ceilingTexture, const std::string& floorTexture,
 		float lightLevel)
@@ -144,7 +162,7 @@ namespace rtdoom
 			span.s = std::min(ceilingProjection, m_floorClip[x]);
 			if (ceilingHeight)
 			{
-				m_ceilingPlanes[x].push_back(Plane(*ceilingHeight, m_ceilClip[x], span.s, ceilingTexture, lightLevel));
+				MergeIntoPlane(m_ceilingPlanes, *ceilingHeight, ceilingTexture, lightLevel, x, m_ceilClip[x], span.s);
 			}
 		}
 		else
@@ -156,7 +174,7 @@ namespace rtdoom
 			span.e = std::max(floorProjection, m_ceilClip[x]);
 			if (floorHeight)
 			{
-				m_floorPlanes[x].push_back(Plane(*floorHeight, span.e, m_floorClip[x], floorTexture, lightLevel));
+				MergeIntoPlane(m_floorPlanes, *floorHeight, floorTexture, lightLevel, x, span.e, m_floorClip[x]);
 			}
 		}
 		else
@@ -185,5 +203,37 @@ namespace rtdoom
 
 	Frame::~Frame()
 	{
+	}
+
+	bool Frame::IsSpanVisible(int x, int sy, int ey) const
+	{
+		return !(sy < 0 && ey < 0) && !(sy >= m_height && ey >= m_height) && x >= 0 && x < m_width;
+	}
+
+	// extend plane to include a vertical span
+	void Frame::Plane::addSpan(int x, int sy, int ey)
+	{
+		for (auto y = sy; y <= ey; y++)
+		{
+			auto& span = spans[y];
+			if (span.empty())
+			{
+				span.push_back(Span(x, x));
+			}
+			else
+			{
+				// if last (most recently added) span can be extended, extend it
+				auto& lastSpan = span[span.size() - 1];
+				if (lastSpan.e == x - 1)
+				{
+					lastSpan.e = x;
+				}
+				else
+				{
+					// create new span at the back so that's its found first next time
+					span.push_back(Span(x, x));
+				}
+			}
+		}
 	}
 }

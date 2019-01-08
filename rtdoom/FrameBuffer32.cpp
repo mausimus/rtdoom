@@ -32,20 +32,10 @@ namespace rtdoom
 			Pixel32 pixel;
 			pixel.argb32 = color;
 
-			if (lightness < 1)
-			{
-				if (lightness <= 0)
-				{
-					pixel.argb32 = 0;
-				}
-				else
-				{
-					lightness = Gamma(lightness);
-					pixel.argb8.r = static_cast<unsigned char>(pixel.argb8.r * lightness);
-					pixel.argb8.g = static_cast<unsigned char>(pixel.argb8.g * lightness);
-					pixel.argb8.b = static_cast<unsigned char>(pixel.argb8.b * lightness);
-				}
-			}
+			lightness = Gamma(lightness);
+			pixel.argb8.r = static_cast<unsigned char>(pixel.argb8.r * lightness);
+			pixel.argb8.g = static_cast<unsigned char>(pixel.argb8.g * lightness);
+			pixel.argb8.b = static_cast<unsigned char>(pixel.argb8.b * lightness);
 
 			auto offset = m_width * sy + (m_width - x - 1);
 			for (auto y = sy; y <= ey; y++)
@@ -56,33 +46,85 @@ namespace rtdoom
 		}
 	}
 
+	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& colorIndexes, float lightness) noexcept
+	{
+		if (m_pixels != nullptr && x >= 0 && x < m_width)
+		{
+			lightness = Gamma(lightness);
+			auto offset = m_width * sy + (m_width - x - 1);
+			for (auto j = 0; j < colorIndexes.size(); j++)
+			{
+				const auto& color = m_palette.colors[colorIndexes[j]];
+				Pixel32& pixel = m_pixels[offset];
+
+				pixel.argb8.a = 0;
+				pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
+				pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
+				pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
+
+				m_pixels[offset].argb32 = pixel.argb32;
+				offset += m_width;
+			}
+		}
+	}
+
+	void FrameBuffer32::HorizontalLine(int sx, int y, const std::vector<int>& colorIndexes, float lightness) noexcept
+	{
+		if (m_pixels != nullptr && y >= 0 && y < m_height)
+		{
+			lightness = Gamma(lightness);
+			auto offset = m_width * y + (m_width - sx - 1);
+			for (auto j = 0; j < colorIndexes.size(); j++)
+			{
+				const auto& color = m_palette.colors[colorIndexes[j]];
+				Pixel32& pixel = m_pixels[offset];
+
+				pixel.argb8.a = 0;
+				pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
+				pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
+				pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
+
+				m_pixels[offset].argb32 = pixel.argb32;
+				offset--;// = m_width;
+			}
+		}
+	}
+
+	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& colorIndexes, const std::vector<float>& lightnesses) noexcept
+	{
+		if (m_pixels != nullptr && x >= 0 && x < m_width)
+		{
+			auto offset = m_width * sy + (m_width - x - 1);
+			for (auto j = 0; j < colorIndexes.size(); j++)
+			{
+				const auto& color = m_palette.colors[colorIndexes[j]];
+				Pixel32& pixel = m_pixels[offset];
+
+				const auto lightness = Gamma(lightnesses[j]);
+				pixel.argb8.a = 0;
+				pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
+				pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
+				pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
+
+				m_pixels[offset].argb32 = pixel.argb32;
+				offset += m_width;
+			}
+		}
+	}
+
 	void FrameBuffer32::SetPixel(int x, int y, int colorIndex, float lightness) noexcept
 	{
 		if (m_pixels != nullptr && x >= 0 && y >= 0 && x < m_width && y < m_height)
 		{
-			auto color = m_palette.colors[colorIndex];
+			const auto& color = m_palette.colors[colorIndex];
 			const auto offset = m_width * y + (m_width - x - 1);
 
+			lightness = Gamma(lightness);
 			Pixel32& pixel = m_pixels[offset];
 			pixel.argb8.a = 0;
-			pixel.argb8.r = color.r;
-			pixel.argb8.g = color.g;
-			pixel.argb8.b = color.b;
-
-			if (lightness < 1)
-			{
-				if (lightness <= 0)
-				{
-					pixel.argb32 = 0;
-				}
-				else
-				{
-					lightness = Gamma(lightness);
-					pixel.argb8.r = static_cast<unsigned char>(pixel.argb8.r * lightness);
-					pixel.argb8.g = static_cast<unsigned char>(pixel.argb8.g * lightness);
-					pixel.argb8.b = static_cast<unsigned char>(pixel.argb8.b * lightness);
-				}
-			}
+			pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
+			pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
+			pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
 		}
 	}
 

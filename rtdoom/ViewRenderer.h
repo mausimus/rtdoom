@@ -20,9 +20,9 @@ namespace rtdoom
 	protected:
 		struct VisibleSegment
 		{
-			VisibleSegment(const Segment& segment) : segment{ segment } {}
+			VisibleSegment(const Segment& segment) : mapSegment{ segment } {}
 
-			const Segment& segment;
+			const Segment& mapSegment;
 			Vector normalVector;
 			int startX;
 			int endX;
@@ -37,7 +37,6 @@ namespace rtdoom
 			float yScale;
 			float xPos;
 			int yPegging;
-			//int xOffset;
 			int yOffset;
 		};
 
@@ -53,7 +52,7 @@ namespace rtdoom
 
 		void RenderColumnSpan(int x, const Frame::Span& outerSpan, const TextureContext& outerTexture, float lightness, const VisibleSegment& visibleSegment) const;
 		void TextureWall(int x, const Frame::Span& span, const TextureContext& textureContext, float lightness) const;
-		void TexturePlane(int x, const Frame::Plane& plane) const;
+		void TexturePlane(const Frame::Plane& plane) const;
 
 		Angle GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
 		float GetLightness(float distance, const Segment* segment = nullptr) const;
@@ -63,12 +62,14 @@ namespace rtdoom
 		std::unique_ptr<Projection> m_projection;
 		std::unique_ptr<Frame> m_frame;
 		RenderingMode m_renderingMode;
+		bool m_stepFrame;
 
 	public:
 		ViewRenderer(const GameState& gameState, const WADFile& wadFile);
 		~ViewRenderer();
 
 		virtual void RenderFrame(FrameBuffer& frameBuffer) override;
+		void StepFrame();
 		Frame* GetLastFrame() const;
 		void SetMode(RenderingMode renderingMode);
 	};

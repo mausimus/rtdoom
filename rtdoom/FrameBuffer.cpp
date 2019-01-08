@@ -10,7 +10,7 @@ namespace rtdoom
 	{
 	}
 
-	float FrameBuffer::Gamma(float lightness) const
+	float FrameBuffer::Gamma(float lightness)
 	{
 		if (lightness >= 1)
 		{
@@ -18,9 +18,9 @@ namespace rtdoom
 		}
 		else if (lightness <= 0)
 		{
-			return 0;
+			return 0.15f;
 		}
-		return 0.3f + lightness * 0.7f;
+		return 0.2f + lightness * 0.8f;
 	}
 
 	FrameBuffer::~FrameBuffer()

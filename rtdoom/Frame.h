@@ -20,13 +20,15 @@ namespace rtdoom
 
 		struct Plane
 		{
-			Plane(float h, int s, int e, std::string textureName, float lightLevel) : h{ h }, s{ s }, e{ e }, textureName{ textureName }, lightLevel{ lightLevel } {}
+			Plane(float h, const std::string& textureName, float lightLevel, int height) : h{ h }, textureName{ textureName }, lightLevel{ lightLevel },
+				spans(height) {}
 			bool isSky() const { return isnan(h); }
-			std::string textureName;
-			float lightLevel;
-			float h;
-			int s;
-			int e;
+			const std::string& textureName;
+			const float lightLevel;
+			const float h;
+			std::vector<std::vector<Span>> spans;
+
+			void addSpan(int x, int sy, int ey);
 		};
 
 		const int m_width;
@@ -39,20 +41,26 @@ namespace rtdoom
 		std::vector<int> m_floorClip;
 		std::vector<int> m_ceilClip;
 
+		// numer of drawn segments
+		int m_numSegments = 0;
+		int m_numFloorPlanes = 0;
+		int m_numCeilingPlanes = 0;
+
 		// spaces between walls with floors and ceilings
-		std::vector<std::vector<Plane>> m_floorPlanes;
-		std::vector<std::vector<Plane>> m_ceilingPlanes;
+		std::deque<Plane> m_floorPlanes;
+		std::deque<Plane> m_ceilingPlanes;
 
-		// height of the current view point based on sector the player is in
-		std::vector<Sector> m_drawnSectors;
+		// add vertical span to existing planes
+		void MergeIntoPlane(std::deque<Plane>& planes, float height, const std::string& textureName, float lightLevel, int x, int sy, int ey);
 
-		// returns horizontal screen spans where the segment is visible and updates occlusion table
+		// returns horizontal screen spans where the mapSegment is visible and updates occlusion table
 		std::vector<Span> ClipHorizontalSegment(int startX, int endX, bool isSolid);
 
 		// returns the vertical screen span where the column is visible and updates occlussion table
 		Span ClipVerticalSegment(int x, int ceilingProjection, int floorProjection, bool isSolid,
 			const float* ceilingHeight, const float* floorHeight, const std::string& ceilingTexture, const std::string& floorTexture, float lightLevel);
 
+		bool IsSpanVisible(int x, int sy, int ey) const;
 		bool IsHorizontallyOccluded() const;
 		bool IsVerticallyOccluded(int x) const;
 

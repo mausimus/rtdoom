@@ -5,6 +5,7 @@
 using std::vector;
 using std::deque;
 using std::string;
+using std::shared_ptr;
 
 namespace rtdoom
 {
@@ -13,6 +14,7 @@ namespace rtdoom
 	{
 		OpenDoors();
 		BuildWireframe();
+		BuildSegments();
 	}
 
 	MapDef::MapDef(const string& mapFolder)
@@ -20,6 +22,7 @@ namespace rtdoom
 		m_store.Load(mapFolder);
 		OpenDoors();
 		BuildWireframe();
+		BuildSegments();
 	}
 
 	void MapDef::OpenDoors()
@@ -41,15 +44,47 @@ namespace rtdoom
 	}
 
 	// traverse the BSP tree stored with the map depth-first
-	deque<Segment> MapDef::GetSegmentsToDraw(const Point& pov) const
+	deque<shared_ptr<Segment>> MapDef::GetSegmentsToDraw(const Point& pov) const
 	{
-		deque<Segment> segments;
+		deque<shared_ptr<Segment>> segments;
 		ProcessNode(pov, *m_store.m_nodes.rbegin(), segments);
 		return segments;
 	}
 
+	// find the first sector to draw (POV location)
+	std::optional<Sector> MapDef::GetSector(const Point& pov) const
+	{
+		auto treeIndex = m_store.m_nodes.size() - 1;
+		while (true)
+		{
+			const auto& treeNode = m_store.m_nodes[treeIndex];
+			unsigned short childRef = IsInFrontOf(pov, treeNode) ? treeNode.rightChild : treeNode.leftChild;
+			if (childRef & 0x8000)
+			{
+				for (auto i = 0; i < m_store.m_subSectors[childRef & 0x7fff].numSegments; i++)
+				{
+					const auto& ld = m_store.m_lineDefs[m_store.m_segments[m_store.m_subSectors[childRef & 0x7fff].firstSegment + i].lineDef];
+					const bool isInFront = IsInFrontOf(pov, m_store.m_vertexes[ld.startVertex], m_store.m_vertexes[ld.endVertex]);
+					if (ld.leftSideDef < 32000 && !isInFront)
+					{
+						return m_store.m_sectors[m_store.m_sideDefs[ld.leftSideDef].sector];
+					}
+					else if (ld.rightSideDef < 32000 && isInFront)
+					{
+						return m_store.m_sectors[m_store.m_sideDefs[ld.rightSideDef].sector];
+					}
+				}
+				return std::nullopt;
+			}
+			else
+			{
+				treeIndex = childRef;
+			}
+		}
+	}
+
 	// process tree node and go left or right depending on the locationo of player vs the BSP division line
-	void MapDef::ProcessNode(const Point& pov, const MapStore::Node& node, deque<Segment>& segments) const
+	void MapDef::ProcessNode(const Point& pov, const MapStore::Node& node, deque<shared_ptr<Segment>>& segments) const
 	{
 		if (IsInFrontOf(pov, node))
 		{
@@ -64,7 +99,7 @@ namespace rtdoom
 	}
 
 	// process a child node depending on whether it's an inner node or a leaf (subsector)
-	void MapDef::ProcessChildRef(unsigned short childRef, const Point& pov, deque<Segment>& segments) const
+	void MapDef::ProcessChildRef(unsigned short childRef, const Point& pov, deque<shared_ptr<Segment>>& segments) const
 	{
 		if (childRef & 0x8000)
 		{
@@ -121,9 +156,16 @@ namespace rtdoom
 
 	bool MapDef::IsInFrontOf(const Point& pov, const MapStore::Node& node) noexcept
 	{
-		return IsInFrontOf(pov, Line{
+		return IsInFrontOf(pov, Line(
 			Vertex{ node.partitionX, node.partitionY },
-			Vertex{ node.partitionX + node.deltaX, node.partitionY + node.deltaY } });
+			Vertex{ node.partitionX + node.deltaX, node.partitionY + node.deltaY }));
+	}
+
+	bool MapDef::IsInFrontOf(const Point& pov, const MapStore::Vertex& sv, const MapStore::Vertex& ev) noexcept
+	{
+		return IsInFrontOf(pov, Line(
+			Vertex{ sv.x, sv.y },
+			Vertex{ ev.x, ev.y }));
 	}
 
 	void MapDef::BuildWireframe()
@@ -136,12 +178,11 @@ namespace rtdoom
 		}
 	}
 
-	// process serialized map format into usable structures
-	void MapDef::ProcessSubsector(const MapStore::SubSector& subSector, deque<Segment>& segments) const
+	void MapDef::BuildSegments()
 	{
-		for (auto i = 0; i < subSector.numSegments; i++)
+		m_segments.reserve(m_store.m_segments.size());
+		for (const auto& mapSegment : m_store.m_segments)
 		{
-			const auto& mapSegment = m_store.m_segments[subSector.firstSegment + i];
 			const auto& mapStartVertex = m_store.m_vertexes[mapSegment.startVertex];
 			const auto& mapEndVertex = m_store.m_vertexes[mapSegment.endVertex];
 			const Vertex s{ mapStartVertex.x, mapStartVertex.y };
@@ -153,8 +194,7 @@ namespace rtdoom
 			MapStore::SideDef frontSide, backSide;
 			if (mapSegment.direction == 1 && lineDef.leftSideDef < 32000)
 			{
-				isSolid = m_store.m_sideDefs[lineDef.leftSideDef].middleTexture[0] != 45 && lineDef.lineType != 1; // open doors
-
+				isSolid = lineDef.leftSideDef > 32000;
 				frontSide = m_store.m_sideDefs[lineDef.leftSideDef];
 				frontSector = Sector{ m_store.m_sectors[frontSide.sector] };
 				if (lineDef.rightSideDef < 32000)
@@ -165,8 +205,7 @@ namespace rtdoom
 			}
 			else if (mapSegment.direction == 0 && lineDef.rightSideDef < 32000)
 			{
-				isSolid = m_store.m_sideDefs[lineDef.rightSideDef].middleTexture[0] != 45 && lineDef.lineType != 1; // open doors
-
+				isSolid = lineDef.leftSideDef > 32000;
 				frontSide = m_store.m_sideDefs[lineDef.rightSideDef];
 				frontSector = Sector{ m_store.m_sectors[frontSide.sector] };
 				if (lineDef.leftSideDef < 32000)
@@ -179,8 +218,16 @@ namespace rtdoom
 			Side front{ frontSector, Utils::MakeString(frontSide.lowerTexture), Utils::MakeString(frontSide.middleTexture), Utils::MakeString(frontSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
 			Side back{ backSector, Utils::MakeString(backSide.lowerTexture), Utils::MakeString(backSide.middleTexture), Utils::MakeString(backSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
 
-			Segment seg{ s, e, isSolid, front, back, mapSegment.offset, (bool)(lineDef.flags & 0x0010), (bool)(lineDef.flags & 0x0008) };
-			segments.push_back(seg);
+			m_segments.push_back(std::make_shared<Segment>(s, e, isSolid, front, back, mapSegment.offset, (bool)(lineDef.flags & 0x0010), (bool)(lineDef.flags & 0x0008)));
+		}
+	}
+
+	// process serialized map format into usable structures
+	void MapDef::ProcessSubsector(const MapStore::SubSector& subSector, deque<shared_ptr<Segment>>& segments) const
+	{
+		for (auto i = 0; i < subSector.numSegments; i++)
+		{
+			segments.push_back(m_segments[subSector.firstSegment + i]);
 		}
 	}
 

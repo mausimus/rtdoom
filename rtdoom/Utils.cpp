@@ -21,8 +21,7 @@ namespace rtdoom
 		{
 			v += max;
 		}
-		v %= max;
-		return v;
+		return v % max;
 	}
 
 	Utils::Utils()

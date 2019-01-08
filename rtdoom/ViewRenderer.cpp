@@ -4,9 +4,12 @@
 #include "MathCache.h"
 
 using namespace std::literals::string_literals;
+using namespace std::chrono_literals;
 
 namespace rtdoom
 {
+	const auto s_stepDelay = 10ms;
+
 	ViewRenderer::ViewRenderer(const GameState& gameState, const WADFile& wadFile) :
 		Renderer{ gameState },
 		m_wadFile{ wadFile },
@@ -27,14 +30,18 @@ namespace rtdoom
 		}
 
 		// iterate through all segments (map lines) in visibility order returned by traversing the map's BSP tree
-		for (const auto& l : m_gameState.m_mapDef->GetSegmentsToDraw(m_gameState.m_player))
+		for (const auto& segment : m_gameState.m_mapDef->GetSegmentsToDraw(m_gameState.m_player))
 		{
-			DrawMapSegment(l);
-
-			// stop drawing once the frame has been fully horizontally occluded with solid walls
-			if (m_frame->IsHorizontallyOccluded())
+			// only draw segments that are facing the player
+			if (MapDef::IsInFrontOf(m_gameState.m_player, *segment))
 			{
-				break;
+				DrawMapSegment(*segment);
+
+				// stop drawing once the frame has been fully horizontally occluded with solid walls
+				if (m_frame->IsHorizontallyOccluded())
+				{
+					break;
+				}
 			}
 		}
 
@@ -44,15 +51,9 @@ namespace rtdoom
 
 	void ViewRenderer::DrawMapSegment(const Segment& segment) const
 	{
-		// do not draw any segments that are not facing the player
-		if (!MapDef::IsInFrontOf(m_gameState.m_player, segment))
-		{
-			return;
-		}
-
 		VisibleSegment visibleSegment{ segment };
 
-		// calculate relative view angles of the segment and skip rendering if they are not within the field of view
+		// calculate relative view angles of the mapSegment and skip rendering if they are not within the field of view
 		visibleSegment.startAngle = m_projection->ProjectionAngle(segment.s);
 		visibleSegment.endAngle = m_projection->ProjectionAngle(segment.e);
 		if (!Projection::NormalizeViewAngleSpan(visibleSegment.startAngle, visibleSegment.endAngle))
@@ -60,7 +61,7 @@ namespace rtdoom
 			return;
 		}
 
-		// project edges of the segment onto the screen from left to right
+		// project edges of the mapSegment onto the screen from left to right
 		visibleSegment.startX = m_projection->ViewX(visibleSegment.startAngle);
 		visibleSegment.endX = m_projection->ViewX(visibleSegment.endAngle);
 		if (visibleSegment.startX > visibleSegment.endX)
@@ -69,7 +70,7 @@ namespace rtdoom
 			std::swap(visibleSegment.startAngle, visibleSegment.endAngle);
 		}
 
-		// clip the segment against already drawn solid walls (horizontal occlusion)
+		// clip the mapSegment against already drawn solid walls (horizontal occlusion)
 		const auto visibleSpans = m_frame->ClipHorizontalSegment(visibleSegment.startX, visibleSegment.endX, segment.isSolid);
 		if (visibleSpans.empty())
 		{
@@ -77,25 +78,25 @@ namespace rtdoom
 		}
 
 		// draw all visible spans
-		visibleSegment.normalVector = m_projection->NormalVector(segment); // normal vector from the segment towards the player
+		visibleSegment.normalVector = m_projection->NormalVector(segment); // normal vector from the mapSegment towards the player
 		visibleSegment.normalOffset = m_projection->NormalOffset(segment); // offset of the normal vector from the start of the line (for texturing)
-		for (const auto& s : visibleSpans)
+		for (const auto& span : visibleSpans)
 		{
-			DrawMapSegmentSpan(s, visibleSegment);
+			DrawMapSegmentSpan(span, visibleSegment);
 		}
 
-		m_frame->m_drawnSectors.push_back(segment.frontSide.sector);
+		m_frame->m_numSegments++;
 	}
 
-	// draw a visible span of a segment on the frame buffer
+	// draw a visible span of a mapSegment on the frame buffer
 	void ViewRenderer::DrawMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const
 	{
-		const Segment& segment = visibleSegment.segment;
+		const Segment& mapSegment = visibleSegment.mapSegment;
 
 		// iterate through all vertical columns from left to right
 		for (auto x = span.s; x <= span.e; x++)
 		{
-			// calculate the relative angle and distance to the segment from our viewpoint
+			// calculate the relative angle and distance to the mapSegment from our viewpoint
 			auto viewAngle = GetViewAngle(x, visibleSegment);
 			auto distance = m_projection->Distance(visibleSegment.normalVector, viewAngle);
 			if (distance < s_minDistance)
@@ -104,42 +105,43 @@ namespace rtdoom
 			}
 
 			// calculate on-screen vertical start and end positions for the column, based on the front (outer) side
-			const auto outerTopY = m_projection->ViewY(distance, segment.frontSide.sector.ceilingHeight - m_gameState.m_player.z);
-			const auto outerBottomY = m_projection->ViewY(distance, segment.frontSide.sector.floorHeight - m_gameState.m_player.z);
+			const auto outerTopY = m_projection->ViewY(distance, mapSegment.frontSide.sector.ceilingHeight - m_gameState.m_player.z);
+			const auto outerBottomY = m_projection->ViewY(distance, mapSegment.frontSide.sector.floorHeight - m_gameState.m_player.z);
 
 			TextureContext outerTexture;
 			outerTexture.yScale = m_projection->TextureScale(distance, 1.0f); // yScale of 1 height
-			outerTexture.yPegging = visibleSegment.segment.lowerUnpegged ? outerBottomY : outerTopY;
-			outerTexture.textureName = visibleSegment.segment.frontSide.middleTexture;
-			outerTexture.yOffset = visibleSegment.segment.frontSide.yOffset;
+			outerTexture.yPegging = mapSegment.lowerUnpegged ? outerBottomY : outerTopY;
+			outerTexture.textureName = mapSegment.frontSide.middleTexture;
+			outerTexture.yOffset = mapSegment.frontSide.yOffset;
+			// texel x position is the offset from player to normal vector plus offset from normal vector to view, plus static mapSegment and linedef offsets
 			outerTexture.xPos = visibleSegment.normalOffset + m_projection->Offset(visibleSegment.normalVector, viewAngle)
-				+ visibleSegment.segment.xOffset + visibleSegment.segment.frontSide.xOffset;
+				+ mapSegment.xOffset + mapSegment.frontSide.xOffset;
 
-			const auto lightness = GetLightness(distance, &segment) * segment.frontSide.sector.lightLevel;
-			const auto ceilingHeight = segment.frontSide.sector.isSky ? s_skyHeight : (segment.frontSide.sector.ceilingHeight - m_gameState.m_player.z);
-			const auto floorHeight = segment.frontSide.sector.floorHeight - m_gameState.m_player.z;
+			const auto lightness = GetLightness(distance, &mapSegment) * mapSegment.frontSide.sector.lightLevel;
+			const auto ceilingHeight = mapSegment.frontSide.sector.isSky ? s_skyHeight : (mapSegment.frontSide.sector.ceilingHeight - m_gameState.m_player.z);
+			const auto floorHeight = mapSegment.frontSide.sector.floorHeight - m_gameState.m_player.z;
 
 			// clip the column based on what we've already have drawn (vertical occlusion)
-			const auto& outerSpan = m_frame->ClipVerticalSegment(x, outerTopY, outerBottomY, segment.isSolid, &ceilingHeight, &floorHeight,
-				segment.frontSide.sector.ceilingTexture, segment.frontSide.sector.floorTexture, segment.frontSide.sector.lightLevel);
+			const auto& outerSpan = m_frame->ClipVerticalSegment(x, outerTopY, outerBottomY, mapSegment.isSolid, &ceilingHeight, &floorHeight,
+				mapSegment.frontSide.sector.ceilingTexture, mapSegment.frontSide.sector.floorTexture, mapSegment.frontSide.sector.lightLevel);
 			if (outerSpan.isVisible())
 			{
 				RenderColumnSpan(x, outerSpan, outerTexture, lightness, visibleSegment);
 			}
 
-			// if the segment is not a solid wall but a pass-through portal clip its back (inner) side
-			if (!segment.isSolid)
+			// if the mapSegment is not a solid wall but a pass-through portal clip its back (inner) side
+			if (!mapSegment.isSolid)
 			{
 				// recalculate column size for the back side
-				const auto innerTopY = m_projection->ViewY(distance, segment.backSide.sector.ceilingHeight - m_gameState.m_player.z);
-				const auto innerBottomY = m_projection->ViewY(distance, segment.backSide.sector.floorHeight - m_gameState.m_player.z);
+				const auto innerTopY = m_projection->ViewY(distance, mapSegment.backSide.sector.ceilingHeight - m_gameState.m_player.z);
+				const auto innerBottomY = m_projection->ViewY(distance, mapSegment.backSide.sector.floorHeight - m_gameState.m_player.z);
 
 				// segments that connect open sky sectors should not have their top sections drawn
-				const auto isSky = segment.frontSide.sector.isSky && segment.backSide.sector.isSky;
+				const auto isSky = mapSegment.frontSide.sector.isSky && mapSegment.backSide.sector.isSky;
 
 				// clip the inner span against what's already been drawn
-				const auto& innerSpan = m_frame->ClipVerticalSegment(x, innerTopY, innerBottomY, segment.isSolid, isSky ? &s_skyHeight : nullptr, nullptr,
-					segment.frontSide.sector.ceilingTexture, segment.frontSide.sector.floorTexture, segment.frontSide.sector.lightLevel);
+				const auto& innerSpan = m_frame->ClipVerticalSegment(x, innerTopY, innerBottomY, mapSegment.isSolid, isSky ? &s_skyHeight : nullptr, nullptr,
+					mapSegment.frontSide.sector.ceilingTexture, mapSegment.frontSide.sector.floorTexture, mapSegment.frontSide.sector.lightLevel);
 				if (innerSpan.isVisible())
 				{
 					// render the inner section (floor/ceiling height change)
@@ -147,47 +149,23 @@ namespace rtdoom
 					{
 						Frame::Span upperSpan(outerSpan.s, innerSpan.s);
 						TextureContext upperTexture;
-						upperTexture.textureName = visibleSegment.segment.frontSide.upperTexture;
+						upperTexture.textureName = mapSegment.frontSide.upperTexture;
 						upperTexture.yScale = outerTexture.yScale;
 						upperTexture.xPos = outerTexture.xPos;
 						upperTexture.yOffset = outerTexture.yOffset;
-						upperTexture.yPegging = visibleSegment.segment.upperUnpegged ? outerTopY : innerTopY;
+						upperTexture.yPegging = mapSegment.upperUnpegged ? outerTopY : innerTopY;
 						RenderColumnSpan(x, upperSpan, upperTexture, lightness, visibleSegment);
 					}
 
 					Frame::Span lowerSpan(innerSpan.e, outerSpan.e);
 					TextureContext lowerTexture;
-					lowerTexture.textureName = visibleSegment.segment.frontSide.lowerTexture;
+					lowerTexture.textureName = mapSegment.frontSide.lowerTexture;
 					lowerTexture.yScale = outerTexture.yScale;
 					lowerTexture.xPos = outerTexture.xPos;
 					lowerTexture.yOffset = outerTexture.yOffset;
-					lowerTexture.yPegging = visibleSegment.segment.lowerUnpegged ? outerTopY : innerBottomY;
+					lowerTexture.yPegging = mapSegment.lowerUnpegged ? outerTopY : innerBottomY;
 					RenderColumnSpan(x, lowerSpan, lowerTexture, lightness, visibleSegment);
 				}
-			}
-		}
-	}
-
-	void ViewRenderer::TextureWall(int x, const Frame::Span& span, const TextureContext& textureContext, float lightness) const
-	{
-		if (textureContext.textureName.length() && textureContext.textureName[0] != '-')
-		{
-			const auto it = m_wadFile.m_textures.find(textureContext.textureName);
-			if (it == m_wadFile.m_textures.end())
-			{
-				return;
-			}
-			const auto& texture = it->second;
-			const auto tx = Utils::Clip(static_cast<int>(textureContext.xPos), texture->width);
-
-			auto dy = span.s;
-			while (dy <= span.e)
-			{
-				const auto vs = (dy - textureContext.yPegging) / textureContext.yScale;
-				const auto ty = Utils::Clip(static_cast<int>(vs) + textureContext.yOffset, texture->height);
-
-				m_frameBuffer->SetPixel(x, dy, texture->pixels[ty * texture->width + tx], lightness);
-				dy++;
 			}
 		}
 	}
@@ -219,54 +197,36 @@ namespace rtdoom
 		}
 	}
 
-	void ViewRenderer::TexturePlane(int x, const Frame::Plane& plane) const
+	// texture a solid wall portion
+	void ViewRenderer::TextureWall(int x, const Frame::Span& span, const TextureContext& textureContext, float lightness) const
 	{
-		auto it = m_wadFile.m_textures.find(plane.textureName);
-
-		if (plane.isSky())
+		if (textureContext.textureName.length() && textureContext.textureName[0] != '-')
 		{
-			if (m_renderingMode == RenderingMode::Solid)
+			const auto it = m_wadFile.m_textures.find(textureContext.textureName);
+			if (it == m_wadFile.m_textures.end())
 			{
-				m_frameBuffer->VerticalLine(x, plane.s, plane.e, s_planeColor, 0.2f);
+				return;
 			}
-			else
-			{
-				it = m_wadFile.m_textures.find("SKY1");
-				const auto& texture = it->second;
-				const auto horizon = m_frameBuffer->m_height / 2.0f;
-				const auto viewAngle = m_projection->ViewAngle(x);
-				const auto tx = Utils::Clip(static_cast<int>((m_gameState.m_player.a + viewAngle) / (PI / 4) * texture->width), texture->width);
-				for (auto y = plane.s; y <= plane.e; y++)
-				{
-					const auto ty = Utils::Clip(static_cast<int>(y / (horizon * 2.0f) * texture->height), texture->height);
-					m_frameBuffer->SetPixel(x, y, texture->pixels[texture->width * ty + tx], 1);
-				}
-			}
-			return;
-		}
+			const auto& texture = it->second;
+			const auto tx = Utils::Clip(static_cast<int>(textureContext.xPos), texture->width);
 
-		for (auto y = plane.s; y <= plane.e; y++)
-		{
-			if (m_renderingMode == RenderingMode::Textured)
+			const auto sy = std::max(0, span.s);
+			const auto ey = std::min(m_frameBuffer->m_height - 1, span.e);
+			const auto ny = ey - sy + 1;
+			std::vector<int> texels(ny);
+
+			const float vStep = 1.0f / textureContext.yScale;
+			float vs = (sy - textureContext.yPegging) * vStep;
+			for (auto dy = sy; dy <= ey; dy++)
 			{
-				if (it == m_wadFile.m_textures.end())
-				{
-					return;
-				}
-				const auto& texture = it->second;
-				auto angle = Projection::NormalizeAngle(m_gameState.m_player.a);
-				auto viewAngle = m_projection->ViewAngle(x);
-				auto distance = m_projection->PlaneDistance(y, plane.h) / MathCache::instance().Cos(viewAngle);
-				if (isfinite(distance) && distance > s_minDistance)
-				{
-					auto tx = Utils::Clip(static_cast<int>(m_gameState.m_player.x + distance * MathCache::instance().Cos(angle + viewAngle)), texture->width);
-					auto ty = Utils::Clip(static_cast<int>(m_gameState.m_player.y + distance * MathCache::instance().Sin(angle + viewAngle)), texture->height);
-					m_frameBuffer->SetPixel(x, y, texture->pixels[texture->width * ty + tx], GetLightness(distance) * plane.lightLevel);
-				}
+				const auto ty = Utils::Clip(static_cast<int>(vs) + textureContext.yOffset, texture->height);
+				texels[dy - sy] = texture->pixels[ty * texture->width + tx];
+				vs += vStep;
 			}
-			else
+			m_frameBuffer->VerticalLine(x, sy, texels, lightness);
+			if (m_stepFrame)
 			{
-				m_frameBuffer->VerticalLine(x, y, y, s_planeColor, GetLightness(m_projection->PlaneDistance(y, plane.h) * plane.lightLevel));
+				std::this_thread::sleep_for(s_stepDelay);
 			}
 		}
 	}
@@ -276,17 +236,85 @@ namespace rtdoom
 	{
 		if (m_renderingMode == RenderingMode::Solid || m_renderingMode == RenderingMode::Textured)
 		{
-			for (auto x = 0; x < m_frameBuffer->m_width; x++)
+			for (const auto& floorPlane : m_frame->m_floorPlanes)
 			{
-				for (const auto& floorPlane : m_frame->m_floorPlanes[x])
+				TexturePlane(floorPlane);
+				m_frame->m_numFloorPlanes++;
+			}
+			for (const auto& ceilingPlane : m_frame->m_ceilingPlanes)
+			{
+				TexturePlane(ceilingPlane);
+				m_frame->m_numCeilingPlanes++;
+			}
+		}
+	}
+
+	// texture a floor/ceiling plane
+	void ViewRenderer::TexturePlane(const Frame::Plane& plane) const
+	{
+		const bool isSky = plane.isSky();
+		auto it = m_wadFile.m_textures.find(isSky ? "SKY1" : plane.textureName);
+		if (m_renderingMode == RenderingMode::Textured && it == m_wadFile.m_textures.end())
+		{
+			return;
+		}
+
+		const auto& texture = it->second;
+		auto angle = Projection::NormalizeAngle(m_gameState.m_player.a);
+		for (auto y = 0; y < plane.spans.size(); y++)
+		{
+			const auto& spans = plane.spans[y];
+			auto centerDistance = m_projection->PlaneDistance(y, plane.h);
+			const float lightness = isSky ? 1 : GetLightness(centerDistance) * plane.lightLevel;
+
+			for (auto span : spans)
+			{
+				const auto sx = std::max(0, span.s);
+				const auto ex = std::min(m_frameBuffer->m_width - 1, span.e);
+				const auto nx = ex - sx + 1;
+
+				std::vector<int> texels(nx);
+				for (auto x = sx; x <= ex; x++)
 				{
-					TexturePlane(x, floorPlane);
+					auto viewAngle = m_projection->ViewAngle(x);
+					const auto distance = centerDistance / MathCache::instance().Cos(viewAngle);
+					if (m_renderingMode == RenderingMode::Solid)
+					{
+						if (isSky)
+						{
+							m_frameBuffer->VerticalLine(x, y, y, s_planeColor, 1);
+						}
+						else
+						{
+							m_frameBuffer->VerticalLine(x, y, y, s_planeColor, GetLightness(distance) * plane.lightLevel);
+						}
+					}
+					else if (isSky)
+					{
+						const auto horizon = m_frameBuffer->m_height / 2.0f;
+						const auto viewAngle = m_projection->ViewAngle(x);
+						const auto tx = Utils::Clip(static_cast<int>((m_gameState.m_player.a + viewAngle) / (PI / 4) * texture->width), texture->width);
+
+						const auto ty = Utils::Clip(static_cast<int>(y / (horizon * 2.0f) * texture->height), texture->height);
+						texels[x - sx] = texture->pixels[texture->width * ty + tx];
+					}
+					else if (isfinite(distance) && distance > s_minDistance)
+					{
+						// texel is simply ray hit location (player location + distance/angle) since floors are regularly tiled
+						auto tx = Utils::Clip(static_cast<int>(m_gameState.m_player.x + distance * MathCache::instance().Cos(angle + viewAngle)), texture->width);
+						auto ty = Utils::Clip(static_cast<int>(m_gameState.m_player.y + distance * MathCache::instance().Sin(angle + viewAngle)), texture->height);
+						texels[x - sx] = texture->pixels[texture->width * ty + tx];
+					}
 				}
-				for (const auto& ceilingPlane : m_frame->m_ceilingPlanes[x])
+				if (m_renderingMode == RenderingMode::Textured)
 				{
-					TexturePlane(x, ceilingPlane);
+					m_frameBuffer->HorizontalLine(sx, y, texels, lightness);
 				}
 			}
+		}
+		if (m_stepFrame)
+		{
+			std::this_thread::sleep_for(s_stepDelay);
 		}
 	}
 
@@ -307,7 +335,7 @@ namespace rtdoom
 		return viewAngle;
 	}
 
-	// calculate the lightness of a segment based on its distance
+	// calculate the lightness of a mapSegment based on its distance
 	float ViewRenderer::GetLightness(float distance, const Segment* segment) const
 	{
 		auto lightness = 0.9f - (distance / s_lightnessFactor);
@@ -336,6 +364,11 @@ namespace rtdoom
 	Frame* ViewRenderer::GetLastFrame() const
 	{
 		return m_frame.get();
+	}
+
+	void ViewRenderer::StepFrame()
+	{
+		m_stepFrame = !m_stepFrame;
 	}
 
 	ViewRenderer::~ViewRenderer()

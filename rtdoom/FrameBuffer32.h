@@ -32,6 +32,9 @@ namespace rtdoom
 		virtual void Clear() override;
 		virtual void SetPixel(int x, int y, int color, float lightness) noexcept override;
 		virtual void VerticalLine(int x, int sy, int ey, int colorIndex, float lightness) noexcept override;
+		virtual void VerticalLine(int x, int sy, const std::vector<int>& colorIndexes, const std::vector<float>& lightnesses) noexcept;
+		virtual void VerticalLine(int x, int sy, const std::vector<int>& colorIndexes, float lightness) noexcept;
+		virtual void HorizontalLine(int sx, int y, const std::vector<int>& colorIndexes, float lightness) noexcept;
 
 		FrameBuffer32(int width, int height, const Palette& palette);
 		~FrameBuffer32();
