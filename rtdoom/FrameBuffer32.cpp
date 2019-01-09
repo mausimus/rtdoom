@@ -7,14 +7,16 @@ namespace rtdoom
 	{
 	}
 
-	void FrameBuffer32::Attach(void* pixels)
+	void FrameBuffer32::Attach(void* pixels, std::function<void()> stepCallback)
 	{
 		m_pixels = reinterpret_cast<Pixel32*>(pixels);
+		m_stepCallback = stepCallback;
 	}
 
 	void FrameBuffer32::Clear()
 	{
 		memset(reinterpret_cast<void*>(m_pixels), 0, m_width * m_height * 4);
+		m_stepCallback();
 	}
 
 	void FrameBuffer32::VerticalLine(int x, int sy, int ey, int colorIndex, float lightness) noexcept
@@ -43,18 +45,19 @@ namespace rtdoom
 				m_pixels[offset].argb32 = pixel.argb32;
 				offset += m_width;
 			}
+			m_stepCallback();
 		}
 	}
 
-	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& colorIndexes, float lightness) noexcept
+	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& texels, float lightness) noexcept
 	{
-		if (m_pixels != nullptr && x >= 0 && x < m_width)
+		if (m_pixels != nullptr && x >= 0 && x < m_width && texels.size())
 		{
 			lightness = Gamma(lightness);
 			auto offset = m_width * sy + (m_width - x - 1);
-			for (auto j = 0; j < colorIndexes.size(); j++)
+			for (const auto t : texels)
 			{
-				const auto& color = m_palette.colors[colorIndexes[j]];
+				const auto& color = m_palette.colors[t];
 				Pixel32& pixel = m_pixels[offset];
 
 				pixel.argb8.a = 0;
@@ -65,18 +68,19 @@ namespace rtdoom
 				m_pixels[offset].argb32 = pixel.argb32;
 				offset += m_width;
 			}
+			m_stepCallback();
 		}
 	}
 
-	void FrameBuffer32::HorizontalLine(int sx, int y, const std::vector<int>& colorIndexes, float lightness) noexcept
+	void FrameBuffer32::HorizontalLine(int sx, int y, const std::vector<int>& texels, float lightness) noexcept
 	{
-		if (m_pixels != nullptr && y >= 0 && y < m_height)
+		if (m_pixels != nullptr && y >= 0 && y < m_height && texels.size())
 		{
 			lightness = Gamma(lightness);
 			auto offset = m_width * y + (m_width - sx - 1);
-			for (auto j = 0; j < colorIndexes.size(); j++)
+			for (const auto t: texels)
 			{
-				const auto& color = m_palette.colors[colorIndexes[j]];
+				const auto& color = m_palette.colors[t];
 				Pixel32& pixel = m_pixels[offset];
 
 				pixel.argb8.a = 0;
@@ -85,22 +89,24 @@ namespace rtdoom
 				pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
 
 				m_pixels[offset].argb32 = pixel.argb32;
-				offset--;// = m_width;
+				offset--;
 			}
+			m_stepCallback();
 		}
 	}
 
-	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& colorIndexes, const std::vector<float>& lightnesses) noexcept
+	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& texels, const std::vector<float>& lightnesses) noexcept
 	{
-		if (m_pixels != nullptr && x >= 0 && x < m_width)
+		if (m_pixels != nullptr && x >= 0 && x < m_width && texels.size())
 		{
 			auto offset = m_width * sy + (m_width - x - 1);
-			for (auto j = 0; j < colorIndexes.size(); j++)
+			auto lightnessIter = lightnesses.begin();
+			for (const auto t : texels)
 			{
-				const auto& color = m_palette.colors[colorIndexes[j]];
+				const auto& color = m_palette.colors[t];
 				Pixel32& pixel = m_pixels[offset];
 
-				const auto lightness = Gamma(lightnesses[j]);
+				const auto lightness = Gamma(*lightnessIter++);
 				pixel.argb8.a = 0;
 				pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
 				pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
@@ -109,6 +115,7 @@ namespace rtdoom
 				m_pixels[offset].argb32 = pixel.argb32;
 				offset += m_width;
 			}
+			m_stepCallback();
 		}
 	}
 

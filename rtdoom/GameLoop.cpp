@@ -8,6 +8,7 @@ namespace rtdoom
 		m_moveDirection{ 0 },
 		m_rotateDirection{ 0 },
 		m_isRunning{ false },
+		m_stepFrame{ false },
 		m_viewRenderer{ m_gameState, wadFile },
 		m_playerViewport{ sdlRenderer, m_viewRenderer, ViewScale(s_displayX), ViewScale(s_displayY), wadFile.m_palette, true },
 		m_mapRenderer{ m_gameState },
@@ -37,8 +38,16 @@ namespace rtdoom
 
 	const Frame* GameLoop::RenderFrame()
 	{
-		m_playerViewport.Draw();
-		m_mapViewport.Draw();
+		if (m_stepFrame)
+		{
+			m_playerViewport.DrawSteps();
+			StepFrame(); // disable stepping
+		}
+		else
+		{
+			m_playerViewport.Draw();
+			m_mapViewport.Draw();
+		}
 		return m_viewRenderer.GetLastFrame();
 	}
 
@@ -53,7 +62,8 @@ namespace rtdoom
 
 	void GameLoop::StepFrame()
 	{
-		m_viewRenderer.StepFrame();
+		m_stepFrame = !m_stepFrame;
+		//		m_viewRenderer.StepFrame();
 	}
 
 	void GameLoop::Tick(float seconds)

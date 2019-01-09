@@ -43,6 +43,8 @@ namespace rtdoom
 
 		struct SideDef
 		{
+			SideDef() {}
+
 			signed short xOffset;
 			signed short yOffset;
 			char upperTexture[8];

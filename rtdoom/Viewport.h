@@ -29,6 +29,7 @@ namespace rtdoom
 		Viewport(SDL_Renderer* sdlRenderer, Renderer& renderer, int width, int height, const Palette& palette, bool fillTarget);
 		void Resize(int width, int height);
 		void Draw();
+		void DrawSteps();
 		~Viewport();
 	};
 }

@@ -2,7 +2,7 @@
 
 namespace rtdoom
 {
-	class Utils
+	class Helpers
 	{
 	public:
 		template<typename T> static std::vector<T> LoadEntities(const std::string& fileName)
@@ -23,7 +23,7 @@ namespace rtdoom
 
 		template<typename T> static std::vector<T> LoadEntities(const std::vector<char>& data)
 		{
-			int dataIndex = 0;
+			size_t dataIndex = 0;
 			std::vector<T> items;
 			T v;
 			while (dataIndex < data.size())
@@ -44,7 +44,7 @@ namespace rtdoom
 
 		static int Clip(int v, int max);
 
-		Utils();
-		~Utils();
+		Helpers();
+		~Helpers();
 	};
 }

@@ -29,6 +29,7 @@ namespace rtdoom
 		float Offset(const Vector& normalVector, Angle viewAngle) const;
 		float PlaneDistance(int y, float height) const noexcept;
 		Angle ProjectionAngle(const Point& p) const;
+		float Lightness(float distance, const Segment* segment = nullptr) const;
 
 		Projection(const Thing& player, const FrameBuffer& frameBuffer);
 		~Projection();

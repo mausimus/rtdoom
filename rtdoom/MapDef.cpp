@@ -215,8 +215,8 @@ namespace rtdoom
 				}
 			}
 
-			Side front{ frontSector, Utils::MakeString(frontSide.lowerTexture), Utils::MakeString(frontSide.middleTexture), Utils::MakeString(frontSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
-			Side back{ backSector, Utils::MakeString(backSide.lowerTexture), Utils::MakeString(backSide.middleTexture), Utils::MakeString(backSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
+			Side front{ frontSector, Helpers::MakeString(frontSide.lowerTexture), Helpers::MakeString(frontSide.middleTexture), Helpers::MakeString(frontSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
+			Side back{ backSector, Helpers::MakeString(backSide.lowerTexture), Helpers::MakeString(backSide.middleTexture), Helpers::MakeString(backSide.upperTexture), frontSide.xOffset, frontSide.yOffset };
 
 			m_segments.push_back(std::make_shared<Segment>(s, e, isSolid, front, back, mapSegment.offset, (bool)(lineDef.flags & 0x0010), (bool)(lineDef.flags & 0x0008)));
 		}

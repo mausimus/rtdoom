@@ -18,6 +18,4 @@
 #include <optional>
 #include <unordered_set>
 
-#include <math.h>
-
 #endif //PCH_H

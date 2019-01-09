@@ -20,6 +20,7 @@ namespace rtdoom
 		MapRenderer m_mapRenderer;
 		Viewport m_mapViewport;
 		bool m_isRunning;
+		bool m_stepFrame;
 		int m_moveDirection;
 		int m_rotateDirection;
 

@@ -81,7 +81,10 @@ int main(int /*argc*/, char** /*argv*/)
 						gameLoop.SetRenderingMode(ViewRenderer::RenderingMode::Textured);
 						break;
 					case SDLK_s:
-						gameLoop.StepFrame();
+						if (p)
+						{
+							gameLoop.StepFrame();
+						}
 						break;
 					case SDLK_m:
 						// next map
@@ -112,7 +115,7 @@ int main(int /*argc*/, char** /*argv*/)
 			gameLoop.Tick(seconds);
 
 #if _DEBUG
-			cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " << 
+			cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " <<
 				frame->m_numFloorPlanes << "+" << frame->m_numCeilingPlanes << " planes" << endl;
 #endif
 		}
