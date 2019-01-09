@@ -1,21 +1,21 @@
 #include "pch.h"
-#include "Utils.h"
+#include "Helpers.h"
 
 namespace rtdoom
 {
-	std::string Utils::MakeString(const char data[8])
+	std::string Helpers::MakeString(const char data[8])
 	{
 		char fullName[9];
 		fullName[8] = 0;
 		memcpy(fullName, data, 8);
 		for (int i = 0; i < 8; i++)
 		{
-			fullName[i] = toupper(fullName[i]);
+			fullName[i] = static_cast<char>(toupper(fullName[i]));
 		}
 		return std::string(fullName);
 	}
 
-	int Utils::Clip(int v, int max)
+	int Helpers::Clip(int v, int max)
 	{
 		while (v < 0)
 		{
@@ -24,11 +24,11 @@ namespace rtdoom
 		return v % max;
 	}
 
-	Utils::Utils()
+	Helpers::Helpers()
 	{
 	}
 
-	Utils::~Utils()
+	Helpers::~Helpers()
 	{
 	}
 }

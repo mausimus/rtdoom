@@ -2,6 +2,9 @@
 #include "rtdoom.h"
 #include "ViewRenderer.h"
 #include "MathCache.h"
+#include "WireframePainter.h"
+#include "SolidPainter.h"
+#include "TexturePainter.h"
 
 using namespace std::literals::string_literals;
 using namespace std::chrono_literals;
@@ -20,14 +23,7 @@ namespace rtdoom
 	// entry method for rendering a frame
 	void ViewRenderer::RenderFrame(FrameBuffer& frameBuffer)
 	{
-		m_frameBuffer = &frameBuffer;
-		m_projection.reset(new Projection{ m_gameState.m_player, frameBuffer });
-		m_frame.reset(new Frame{ frameBuffer });
-
-		if (m_renderingMode == RenderingMode::Wireframe)
-		{
-			m_frameBuffer->Clear();
-		}
+		Initialize(frameBuffer);
 
 		// iterate through all segments (map lines) in visibility order returned by traversing the map's BSP tree
 		for (const auto& segment : m_gameState.m_mapDef->GetSegmentsToDraw(m_gameState.m_player))
@@ -35,7 +31,7 @@ namespace rtdoom
 			// only draw segments that are facing the player
 			if (MapDef::IsInFrontOf(m_gameState.m_player, *segment))
 			{
-				DrawMapSegment(*segment);
+				RenderMapSegment(*segment);
 
 				// stop drawing once the frame has been fully horizontally occluded with solid walls
 				if (m_frame->IsHorizontallyOccluded())
@@ -46,10 +42,31 @@ namespace rtdoom
 		}
 
 		// fill in floors and ceilings
-		DrawPlanes();
+		RenderPlanes();
 	}
 
-	void ViewRenderer::DrawMapSegment(const Segment& segment) const
+	void ViewRenderer::Initialize(FrameBuffer& frameBuffer)
+	{
+		m_frameBuffer = &frameBuffer;
+		m_projection = std::make_unique<Projection>(m_gameState.m_player, frameBuffer);
+		m_frame = std::make_unique<Frame>(frameBuffer);
+		switch (m_renderingMode)
+		{
+		case RenderingMode::Wireframe:
+			m_painter = std::make_unique<WireframePainter>(frameBuffer);
+			break;
+		case RenderingMode::Solid:
+			m_painter = std::make_unique<SolidPainter>(frameBuffer, *m_projection);
+			break;
+		case RenderingMode::Textured:
+			m_painter = std::make_unique<TexturePainter>(frameBuffer, m_gameState.m_player, *m_projection, m_wadFile);
+			break;
+		default:
+			throw std::runtime_error("Unsupported rendering mode");
+		}
+	}
+
+	void ViewRenderer::RenderMapSegment(const Segment& segment) const
 	{
 		VisibleSegment visibleSegment{ segment };
 
@@ -82,14 +99,14 @@ namespace rtdoom
 		visibleSegment.normalOffset = m_projection->NormalOffset(segment); // offset of the normal vector from the start of the line (for texturing)
 		for (const auto& span : visibleSpans)
 		{
-			DrawMapSegmentSpan(span, visibleSegment);
+			RenderMapSegmentSpan(span, visibleSegment);
 		}
 
 		m_frame->m_numSegments++;
 	}
 
 	// draw a visible span of a mapSegment on the frame buffer
-	void ViewRenderer::DrawMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const
+	void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const
 	{
 		const Segment& mapSegment = visibleSegment.mapSegment;
 
@@ -116,8 +133,8 @@ namespace rtdoom
 			// texel x position is the offset from player to normal vector plus offset from normal vector to view, plus static mapSegment and linedef offsets
 			outerTexture.xPos = visibleSegment.normalOffset + m_projection->Offset(visibleSegment.normalVector, viewAngle)
 				+ mapSegment.xOffset + mapSegment.frontSide.xOffset;
-
-			const auto lightness = GetLightness(distance, &mapSegment) * mapSegment.frontSide.sector.lightLevel;
+			outerTexture.isEdge = x == visibleSegment.startX || x == visibleSegment.endX;
+			outerTexture.lightness = m_projection->Lightness(distance, &mapSegment) * mapSegment.frontSide.sector.lightLevel;
 			const auto ceilingHeight = mapSegment.frontSide.sector.isSky ? s_skyHeight : (mapSegment.frontSide.sector.ceilingHeight - m_gameState.m_player.z);
 			const auto floorHeight = mapSegment.frontSide.sector.floorHeight - m_gameState.m_player.z;
 
@@ -126,7 +143,7 @@ namespace rtdoom
 				mapSegment.frontSide.sector.ceilingTexture, mapSegment.frontSide.sector.floorTexture, mapSegment.frontSide.sector.lightLevel);
 			if (outerSpan.isVisible())
 			{
-				RenderColumnSpan(x, outerSpan, outerTexture, lightness, visibleSegment);
+				m_painter->PaintWall(x, outerSpan, outerTexture);
 			}
 
 			// if the mapSegment is not a solid wall but a pass-through portal clip its back (inner) side
@@ -148,173 +165,37 @@ namespace rtdoom
 					if (!isSky)
 					{
 						Frame::Span upperSpan(outerSpan.s, innerSpan.s);
-						TextureContext upperTexture;
+						TextureContext upperTexture(outerTexture);
 						upperTexture.textureName = mapSegment.frontSide.upperTexture;
-						upperTexture.yScale = outerTexture.yScale;
-						upperTexture.xPos = outerTexture.xPos;
-						upperTexture.yOffset = outerTexture.yOffset;
 						upperTexture.yPegging = mapSegment.upperUnpegged ? outerTopY : innerTopY;
-						RenderColumnSpan(x, upperSpan, upperTexture, lightness, visibleSegment);
+						m_painter->PaintWall(x, upperSpan, upperTexture);
 					}
 
 					Frame::Span lowerSpan(innerSpan.e, outerSpan.e);
-					TextureContext lowerTexture;
+					TextureContext lowerTexture(outerTexture);
 					lowerTexture.textureName = mapSegment.frontSide.lowerTexture;
-					lowerTexture.yScale = outerTexture.yScale;
-					lowerTexture.xPos = outerTexture.xPos;
-					lowerTexture.yOffset = outerTexture.yOffset;
 					lowerTexture.yPegging = mapSegment.lowerUnpegged ? outerTopY : innerBottomY;
-					RenderColumnSpan(x, lowerSpan, lowerTexture, lightness, visibleSegment);
+					m_painter->PaintWall(x, lowerSpan, lowerTexture);
 				}
-			}
-		}
-	}
-
-	// render the outer (front) section of a column of a visible span on the framebuffer, either a isSolid wall or only edges for pass-through portals
-	void ViewRenderer::RenderColumnSpan(int x, const Frame::Span& span, const TextureContext& textureContext, float lightness, const VisibleSegment& visibleSegment) const
-	{
-		switch (m_renderingMode)
-		{
-		case RenderingMode::Wireframe:
-			m_frameBuffer->VerticalLine(x, span.s, span.s, s_wallColor, lightness);
-			m_frameBuffer->VerticalLine(x, span.e, span.e, s_wallColor, lightness);
-			if (textureContext.textureName != "-" && (x == visibleSegment.startX || x == visibleSegment.endX))
-			{
-				m_frameBuffer->VerticalLine(x, span.s + 1, span.e - 1, s_wallColor, lightness / 2.0f);
-			}
-			break;
-		case RenderingMode::Solid:
-			if (textureContext.textureName != "-")
-			{
-				m_frameBuffer->VerticalLine(x, span.s, span.e, s_wallColor, lightness);
-			}
-			break;
-		case RenderingMode::Textured:
-			TextureWall(x, span, textureContext, lightness);
-			break;
-		default:
-			break;
-		}
-	}
-
-	// texture a solid wall portion
-	void ViewRenderer::TextureWall(int x, const Frame::Span& span, const TextureContext& textureContext, float lightness) const
-	{
-		if (textureContext.textureName.length() && textureContext.textureName[0] != '-')
-		{
-			const auto it = m_wadFile.m_textures.find(textureContext.textureName);
-			if (it == m_wadFile.m_textures.end())
-			{
-				return;
-			}
-			const auto& texture = it->second;
-			const auto tx = Utils::Clip(static_cast<int>(textureContext.xPos), texture->width);
-
-			const auto sy = std::max(0, span.s);
-			const auto ey = std::min(m_frameBuffer->m_height - 1, span.e);
-			const auto ny = ey - sy + 1;
-			std::vector<int> texels(ny);
-
-			const float vStep = 1.0f / textureContext.yScale;
-			float vs = (sy - textureContext.yPegging) * vStep;
-			for (auto dy = sy; dy <= ey; dy++)
-			{
-				const auto ty = Utils::Clip(static_cast<int>(vs) + textureContext.yOffset, texture->height);
-				texels[dy - sy] = texture->pixels[ty * texture->width + tx];
-				vs += vStep;
-			}
-			m_frameBuffer->VerticalLine(x, sy, texels, lightness);
-			if (m_stepFrame)
-			{
-				std::this_thread::sleep_for(s_stepDelay);
 			}
 		}
 	}
 
 	// render floors and ceilings based on data collected during drawing walls
-	void ViewRenderer::DrawPlanes() const
+	void ViewRenderer::RenderPlanes() const
 	{
 		if (m_renderingMode == RenderingMode::Solid || m_renderingMode == RenderingMode::Textured)
 		{
 			for (const auto& floorPlane : m_frame->m_floorPlanes)
 			{
-				TexturePlane(floorPlane);
+				m_painter->PaintPlane(floorPlane);
 				m_frame->m_numFloorPlanes++;
 			}
 			for (const auto& ceilingPlane : m_frame->m_ceilingPlanes)
 			{
-				TexturePlane(ceilingPlane);
+				m_painter->PaintPlane(ceilingPlane);
 				m_frame->m_numCeilingPlanes++;
 			}
-		}
-	}
-
-	// texture a floor/ceiling plane
-	void ViewRenderer::TexturePlane(const Frame::Plane& plane) const
-	{
-		const bool isSky = plane.isSky();
-		auto it = m_wadFile.m_textures.find(isSky ? "SKY1" : plane.textureName);
-		if (m_renderingMode == RenderingMode::Textured && it == m_wadFile.m_textures.end())
-		{
-			return;
-		}
-
-		const auto& texture = it->second;
-		auto angle = Projection::NormalizeAngle(m_gameState.m_player.a);
-		for (auto y = 0; y < plane.spans.size(); y++)
-		{
-			const auto& spans = plane.spans[y];
-			auto centerDistance = m_projection->PlaneDistance(y, plane.h);
-			const float lightness = isSky ? 1 : GetLightness(centerDistance) * plane.lightLevel;
-
-			for (auto span : spans)
-			{
-				const auto sx = std::max(0, span.s);
-				const auto ex = std::min(m_frameBuffer->m_width - 1, span.e);
-				const auto nx = ex - sx + 1;
-
-				std::vector<int> texels(nx);
-				for (auto x = sx; x <= ex; x++)
-				{
-					auto viewAngle = m_projection->ViewAngle(x);
-					const auto distance = centerDistance / MathCache::instance().Cos(viewAngle);
-					if (m_renderingMode == RenderingMode::Solid)
-					{
-						if (isSky)
-						{
-							m_frameBuffer->VerticalLine(x, y, y, s_planeColor, 1);
-						}
-						else
-						{
-							m_frameBuffer->VerticalLine(x, y, y, s_planeColor, GetLightness(distance) * plane.lightLevel);
-						}
-					}
-					else if (isSky)
-					{
-						const auto horizon = m_frameBuffer->m_height / 2.0f;
-						const auto viewAngle = m_projection->ViewAngle(x);
-						const auto tx = Utils::Clip(static_cast<int>((m_gameState.m_player.a + viewAngle) / (PI / 4) * texture->width), texture->width);
-
-						const auto ty = Utils::Clip(static_cast<int>(y / (horizon * 2.0f) * texture->height), texture->height);
-						texels[x - sx] = texture->pixels[texture->width * ty + tx];
-					}
-					else if (isfinite(distance) && distance > s_minDistance)
-					{
-						// texel is simply ray hit location (player location + distance/angle) since floors are regularly tiled
-						auto tx = Utils::Clip(static_cast<int>(m_gameState.m_player.x + distance * MathCache::instance().Cos(angle + viewAngle)), texture->width);
-						auto ty = Utils::Clip(static_cast<int>(m_gameState.m_player.y + distance * MathCache::instance().Sin(angle + viewAngle)), texture->height);
-						texels[x - sx] = texture->pixels[texture->width * ty + tx];
-					}
-				}
-				if (m_renderingMode == RenderingMode::Textured)
-				{
-					m_frameBuffer->HorizontalLine(sx, y, texels, lightness);
-				}
-			}
-		}
-		if (m_stepFrame)
-		{
-			std::this_thread::sleep_for(s_stepDelay);
 		}
 	}
 
@@ -335,27 +216,6 @@ namespace rtdoom
 		return viewAngle;
 	}
 
-	// calculate the lightness of a mapSegment based on its distance
-	float ViewRenderer::GetLightness(float distance, const Segment* segment) const
-	{
-		auto lightness = 0.9f - (distance / s_lightnessFactor);
-
-		if (segment)
-		{
-			// auto-shade 90-degree edges
-			if (segment->isVertical)
-			{
-				lightness *= 1.1f;
-			}
-			else if (segment->isHorizontal)
-			{
-				lightness *= 0.9f;
-			}
-		}
-
-		return lightness;
-	}
-
 	void ViewRenderer::SetMode(RenderingMode renderingMode)
 	{
 		m_renderingMode = renderingMode;
@@ -364,11 +224,6 @@ namespace rtdoom
 	Frame* ViewRenderer::GetLastFrame() const
 	{
 		return m_frame.get();
-	}
-
-	void ViewRenderer::StepFrame()
-	{
-		m_stepFrame = !m_stepFrame;
 	}
 
 	ViewRenderer::~ViewRenderer()

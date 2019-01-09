@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rtdoom.h"
-#include "Utils.h"
+#include "Helpers.h"
 #include "MapStore.h"
 
 namespace rtdoom
@@ -49,8 +49,8 @@ namespace rtdoom
 		Sector(const MapStore::Sector& s) :
 			floorHeight{ static_cast<float>(s.floorHeight) },
 			ceilingHeight{ static_cast<float>(s.ceilingHeight) },
-			ceilingTexture{ Utils::MakeString(s.ceilingTexture) },
-			floorTexture{ Utils::MakeString(s.floorTexture) },
+			ceilingTexture{ Helpers::MakeString(s.ceilingTexture) },
+			floorTexture{ Helpers::MakeString(s.floorTexture) },
 			lightLevel{ s.lightLevel / 255.0f },
 			isSky{ strcmp(s.ceilingTexture, "F_SKY1") == 0 } {}
 

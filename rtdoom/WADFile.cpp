@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "WADFile.h"
-#include "Utils.h"
+#include "Helpers.h"
 
 namespace rtdoom
 {
@@ -26,7 +26,7 @@ namespace rtdoom
 		}
 
 		// find and load maps and patches
-		for (auto i = 0; i < lumps.size(); i++)
+		for (size_t i = 0; i < lumps.size(); i++)
 		{
 			const Lump& lump = lumps.at(i);
 			switch (GetLumpType(lump))
@@ -36,7 +36,7 @@ namespace rtdoom
 				std::map<std::string, std::vector<char>> mapLumps;
 				for (auto j = 1; j <= 10; j++)
 				{
-					std::string lumpName = Utils::MakeString(lumps[i + j].lumpName);
+					std::string lumpName = Helpers::MakeString(lumps[i + j].lumpName);
 					mapLumps.insert(make_pair(lumpName, LoadLump(infile, lumps[i + j])));
 				}
 				i += 11;
@@ -47,7 +47,7 @@ namespace rtdoom
 			}
 			case LumpType::Palette:
 			{
-				Utils::LoadEntity<Palette>(LoadLump(infile, lump), &m_palette);
+				Helpers::LoadEntity<Palette>(LoadLump(infile, lump), &m_palette);
 				break;
 			}
 			case LumpType::PatchNames:
@@ -55,15 +55,11 @@ namespace rtdoom
 				auto lumpData = LoadLump(infile, lump);
 				int numPatches;
 				memcpy(&numPatches, lumpData.data(), sizeof(numPatches));
-				for (int i = 0; i < numPatches; i++)
+				for (int pi = 0; pi < numPatches; pi++)
 				{
 					char patchName[8];
-					memcpy(patchName, lumpData.data() + sizeof(numPatches) + i * sizeof(char[8]), sizeof(char[8]));
-					for (int j = 0; j < 8; j++)
-					{
-						patchName[j] = toupper(patchName[j]);
-					}
-					m_patchNames.push_back(Utils::MakeString(patchName));
+					memcpy(patchName, lumpData.data() + sizeof(numPatches) + pi * sizeof(char[8]), sizeof(char[8]));
+					m_patchNames.push_back(Helpers::MakeString(patchName));
 				}
 				break;
 			}
@@ -97,16 +93,16 @@ namespace rtdoom
 							unsigned char dummy;
 							memcpy(&pixelCount, patchData.data() + columnOffset++, sizeof(unsigned char));
 							memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
-							for (unsigned char j = 0; j < pixelCount; j++)
+							for (unsigned char pj = 0; pj < pixelCount; pj++)
 							{
 								unsigned char pixelColor;
 								memcpy(&pixelColor, patchData.data() + columnOffset++, sizeof(unsigned char));
-								p->pixels[(j + rowstart) * p->width + c] = pixelColor;
+								p->pixels[(pj + rowstart) * p->width + c] = pixelColor;
 							}
 							memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
 						}
 					}
-					m_patches.insert(make_pair(Utils::MakeString(patchLump.lumpName), p));
+					m_patches.insert(make_pair(Helpers::MakeString(patchLump.lumpName), p));
 					j++;
 				}
 				break;
@@ -122,7 +118,7 @@ namespace rtdoom
 					auto t = std::make_shared<Texture>();
 					t->width = 64;
 					t->height = 64;
-					t->name = Utils::MakeString(patchLump.lumpName);
+					t->name = Helpers::MakeString(patchLump.lumpName);
 					t->masked = 0;
 					t->pixels = std::make_unique<unsigned char[]>(t->width * t->height);
 
@@ -139,9 +135,8 @@ namespace rtdoom
 		}
 
 		// build textures
-		for (auto i = 0; i < lumps.size(); i++)
+		for (const auto& lump : lumps)
 		{
-			const Lump& lump = lumps.at(i);
 			switch (GetLumpType(lump))
 			{
 			case LumpType::Texture:
@@ -168,7 +163,7 @@ namespace rtdoom
 					auto t = std::make_shared<Texture>();
 					t->width = textureInfo.width;
 					t->height = textureInfo.height;
-					t->name = Utils::MakeString(textureInfo.name);
+					t->name = Helpers::MakeString(textureInfo.name);
 					t->masked = textureInfo.masked;
 					t->pixels = std::make_unique<unsigned char[]>(t->width * t->height);
 

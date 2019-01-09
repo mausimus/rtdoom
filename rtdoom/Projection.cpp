@@ -189,6 +189,27 @@ namespace rtdoom
 		return true;
 	}
 
+	// calculate the lightness of a mapSegment based on its distance
+	float Projection::Lightness(float distance, const Segment* segment) const
+	{
+		auto lightness = 0.9f - (distance / s_lightnessFactor);
+
+		if (segment)
+		{
+			// auto-shade 90-degree edges
+			if (segment->isVertical)
+			{
+				lightness *= 1.1f;
+			}
+			else if (segment->isHorizontal)
+			{
+				lightness *= 0.9f;
+			}
+		}
+
+		return lightness;
+	}
+
 	Projection::~Projection()
 	{
 	}

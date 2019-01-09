@@ -70,7 +70,7 @@ namespace rtdoom
 			throw std::runtime_error("Unable to lock texture");
 		}
 
-		m_frameBuffer->Attach(pixelBuffer);
+		m_frameBuffer->Attach(pixelBuffer, []() {});
 
 		m_renderer.RenderFrame(*m_frameBuffer);
 
@@ -80,6 +80,37 @@ namespace rtdoom
 		{
 			throw std::runtime_error("Unable to render texture");
 		}
+	}
+
+	void Viewport::DrawSteps()
+	{
+		void* pixelBuffer = new int[m_width * m_height];
+		memset(pixelBuffer, 0x00ffffff, sizeof(int) * m_width * m_height);
+
+		m_frameBuffer->Attach(pixelBuffer, [&]() {
+			void* sdlBuffer;
+			int pitch;
+
+			if (SDL_LockTexture(m_screenTexture, NULL, &sdlBuffer, &pitch))
+			{
+				throw std::runtime_error("Unable to lock texture");
+			}
+
+			memcpy(sdlBuffer, pixelBuffer, sizeof(int) * m_width * m_height);
+
+			SDL_UnlockTexture(m_screenTexture);
+
+			if (SDL_RenderCopy(m_sdlRenderer, m_screenTexture, NULL, m_targetRect.get()))
+			{
+				throw std::runtime_error("Unable to render texture");
+			}
+
+			SDL_RenderPresent(m_sdlRenderer);
+		});
+
+		m_renderer.RenderFrame(*m_frameBuffer);
+
+		delete[] pixelBuffer;
 	}
 
 	Viewport::~Viewport()
