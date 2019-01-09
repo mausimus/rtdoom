@@ -6,13 +6,8 @@
 #include "SolidPainter.h"
 #include "TexturePainter.h"
 
-using namespace std::literals::string_literals;
-using namespace std::chrono_literals;
-
 namespace rtdoom
 {
-	const auto s_stepDelay = 10ms;
-
 	ViewRenderer::ViewRenderer(const GameState& gameState, const WADFile& wadFile) :
 		Renderer{ gameState },
 		m_wadFile{ wadFile },
