@@ -1,11 +1,11 @@
 ## rtdoom
 
-An implementation of the Doom-style raycasting algorithm in modern C++.
+Implementation of the Doom-style graphics engine in modern C++
 
 ### Features
 
 * from-scratch software-based rendering implementation (no 3D libraries used)
-* following originally used algorithms: BSP trees, no Z-buffer, in-place drawing
+* following originally used algorithms: BSP tree, no Z-buffer, no overdraw
 * ability to load original Doom WAD files
 
 ### Screenshots
@@ -24,7 +24,7 @@ Textured mode
 While I follow original algorithms which were designed for resource-constrained architectures
 the primary goal of this project is to provide an easily understandable implementation and
 performance is not a focus (for example floating-point is used, objects are not reused as much
-as they could etc.)
+as they could, many values are not precalculated etc.)
 
 ### Algorithm
 
