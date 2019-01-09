@@ -44,9 +44,10 @@ of algorithms used in the original game, most of which are replicated here.
 Test program uses SDL2 to render the raw framebuffer in a screen window, controls are:
 * arrow keys to move around
 * 1/2/3 to switch between render modes (Wireframe/Solid/Textured)
-* m to load the next map in the .WAD file
+* m to load the next map in the .wad file
+* s to slow down rendering of the next frame to see individual parts being drawn
 * Escape to exit
- 
+
 Built on Windows / Visual Studio 2017 using C++ 17 profile.
 
 No assets included - you will need to drop off a .wad file from either the original Doom (1 or 2) or
