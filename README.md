@@ -1,6 +1,6 @@
 ## rtdoom
 
-Implementation of the Doom-style graphics engine in modern C++
+Implementation of a Doom-style graphics engine in C++ 17.
 
 ### Features
 
@@ -11,16 +11,16 @@ Implementation of the Doom-style graphics engine in modern C++
 ### Screenshots
 
 Wireframe mode
-![screenshot](screen1.png)
+![screenshot](images/screen1.png)
 
 Solid mode
-![screenshot](screen2.png)
+![screenshot](images/screen2.png)
 
 Textured mode
-![screenshot](screen3.png)
+![screenshot](images/screen3.png)
 
 Step frame mode (see elements painted one by one)
-![screenshot](screen4.png)
+![screenshot](images/screen4.png)
 
 ### Goal
 

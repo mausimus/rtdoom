@@ -114,10 +114,8 @@ int main(int /*argc*/, char** /*argv*/)
 			tickCounter = nextCounter;
 			gameLoop.Tick(seconds);
 
-#if _DEBUG
 			cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " <<
 				frame->m_numFloorPlanes << "+" << frame->m_numCeilingPlanes << " planes" << endl;
-#endif
 		}
 
 		DestroySDL(sdlRenderer, sdlWindow);
