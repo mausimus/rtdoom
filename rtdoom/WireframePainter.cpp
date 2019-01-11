@@ -27,7 +27,7 @@ namespace rtdoom
 		}
 	}
 
-	void WireframePainter::PaintSprite(int x, int sy, std::vector<bool> clipping, const Frame::PainterContext & textureContext) const
+	void WireframePainter::PaintSprite(int /*x*/, int /*sy*/, std::vector<bool> /*clipping*/, const Frame::PainterContext& /*textureContext*/) const
 	{
 	}
 

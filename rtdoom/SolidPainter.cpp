@@ -38,20 +38,7 @@ namespace rtdoom
 				const auto ex = std::min(m_frameBuffer.m_width - 1, span.e);
 				const auto nx = ex - sx + 1;
 
-				std::vector<int> texels(nx);
-				for (auto x = sx; x <= ex; x++)
-				{
-					auto viewAngle = m_projection.ViewAngle(x);
-					const auto distance = centerDistance / MathCache::instance().Cos(viewAngle);
-					if (isSky)
-					{
-						m_frameBuffer.VerticalLine(x, y, y, s_planeColor, 1);
-					}
-					else
-					{
-						m_frameBuffer.VerticalLine(x, y, y, s_planeColor, m_projection.Lightness(distance) * plane.lightLevel);
-					}
-				}
+				m_frameBuffer.HorizontalLine(sx, ex, y, s_planeColor, lightness);
 			}
 		}
 	}

@@ -21,6 +21,7 @@ namespace rtdoom
 		virtual void VerticalLine(int x, int sy, const std::vector<int>& texels, const std::vector<float>& lightnesses) noexcept = 0;
 		virtual void VerticalLine(int x, int sy, const std::vector<int>& texels, float lightness) noexcept = 0;
 		virtual void HorizontalLine(int sx, int y, const std::vector<int>& texels, float lightness) noexcept = 0;
+		virtual void HorizontalLine(int sx, int ex, int y, int colorIndex, float lightness) noexcept = 0;
 
 		static float Gamma(float lightness);
 

@@ -27,7 +27,7 @@ namespace rtdoom
 			const auto ny = ey - sy + 1;
 			std::vector<int> texels(ny);
 
-			const float vStep = 1.0f / textureContext.yScale;
+			const float vStep = textureContext.yScale;
 			float vs = (sy - textureContext.yPegging) * vStep;
 			for (auto dy = sy; dy <= ey; dy++)
 			{
@@ -50,7 +50,7 @@ namespace rtdoom
 
 		std::vector<int> texels;
 		texels.reserve(clipping.size());
-		const float vStep = 1.0f / textureContext.yScale;
+		const float vStep = textureContext.yScale;
 		const auto tx = Helpers::Clip(static_cast<int>(textureContext.texelX), sprite->width);
 		float vs = 0;
 		for (auto b : clipping)
@@ -79,43 +79,99 @@ namespace rtdoom
 		}
 
 		const auto& texture = it->second;
-		auto angle = Projection::NormalizeAngle(m_pov.a);
+		const auto angle = Projection::NormalizeAngle(m_pov.a);
+		const auto cosA = MathCache::instance().Cos(angle);
+		const auto sinA = MathCache::instance().Sin(angle);
+		const auto aStep = PI4 / (m_frameBuffer.m_width / 2);
+
+		// floors/ceilings are most efficient painted in horizontal strips since distance to the player is constant
 		for (size_t y = 0; y < plane.spans.size(); y++)
 		{
 			const auto& spans = plane.spans[y];
-			auto centerDistance = m_projection.PlaneDistance(y, plane.h);
-			const float lightness = isSky ? 1 : m_projection.Lightness(centerDistance) * plane.lightLevel;
-
-			for (const auto& span : spans)
+			if (spans.empty())
 			{
-				const auto sx = std::max(0, span.s);
-				const auto ex = std::min(m_frameBuffer.m_width - 1, span.e);
-				const auto nx = ex - sx + 1;
+				continue;
+			}
 
-				std::vector<int> texels(nx);
-				for (auto x = sx; x <= ex; x++)
+			auto mergedSpans = MergeSpans(spans);
+			if (!isSky)
+			{
+				const auto centerDistance = m_projection.PlaneDistance(y, plane.h);
+				if (isfinite(centerDistance) && centerDistance > s_minDistance)
 				{
-					auto viewAngle = m_projection.ViewAngle(x);
-					const auto distance = centerDistance / MathCache::instance().Cos(viewAngle);
-					if (isSky)
-					{
-						const auto horizon = m_frameBuffer.m_height / 2.0f;
-						const auto tx = Helpers::Clip(static_cast<int>((m_pov.a + viewAngle) / (PI / 4) * texture->width), texture->width);
+					const float lightness = m_projection.Lightness(centerDistance) * plane.lightLevel;
+					const auto ccosA = centerDistance * cosA;
+					const auto csinA = centerDistance * sinA;
 
-						const auto ty = Helpers::Clip(static_cast<int>(y / (horizon * 2.0f) * texture->height), texture->height);
-						texels[x - sx] = texture->pixels[texture->width * ty + tx];
-					}
-					else if (isfinite(distance) && distance > s_minDistance)
+					// texel steps per horizontal pixel
+					const auto stepX = -csinA * aStep;
+					const auto stepY = ccosA * aStep;
+
+					for (const auto& span : mergedSpans)
 					{
-						// texel is simply ray hit location (player location + distance/angle) since floors are regularly tiled
-						auto tx = Helpers::Clip(static_cast<int>(m_pov.x + distance * MathCache::instance().Cos(angle + viewAngle)), texture->width);
-						auto ty = Helpers::Clip(static_cast<int>(m_pov.y + distance * MathCache::instance().Sin(angle + viewAngle)), texture->height);
-						texels[x - sx] = texture->pixels[texture->width * ty + tx];
+						const auto sx = std::max(0, span.s);
+						const auto ex = std::min(m_frameBuffer.m_width - 1, span.e);
+						const auto nx = ex - sx + 1;
+						const auto angleTan = aStep * (sx - m_frameBuffer.m_width / 2);
+
+						// starting texel position
+						auto texelX = Helpers::Clip(m_pov.x + ccosA - csinA * angleTan, static_cast<float>(texture->width));
+						auto texelY = Helpers::Clip(m_pov.y + csinA + ccosA * angleTan, static_cast<float>(texture->height));
+
+						std::vector<int> texels(nx);
+						for (auto x = sx; x <= ex; x++)
+						{
+							const auto tx = Helpers::Clip(static_cast<int>(texelX), texture->width);
+							const auto ty = Helpers::Clip(static_cast<int>(texelY), texture->height);
+							texels[x - sx] = texture->pixels[texture->width * ty + tx];
+							texelX += stepX;
+							texelY += stepY;
+						}
+						m_frameBuffer.HorizontalLine(sx, y, texels, lightness);
 					}
 				}
-				m_frameBuffer.HorizontalLine(sx, y, texels, lightness);
+			}
+			else
+			{
+				const auto horizon = m_frameBuffer.m_height / 2.0f;
+				const auto ty = Helpers::Clip(static_cast<int>(y / horizon / 2.0f * texture->height), texture->height);
+				const auto xScale = 1.0f / PI4 * texture->width;
+				for (const auto& span : mergedSpans)
+				{
+					const auto sx = std::max(0, span.s);
+					const auto ex = std::min(m_frameBuffer.m_width - 1, span.e);
+					const auto nx = ex - sx + 1;
+
+					std::vector<int> texels(nx);
+					for (auto x = sx; x <= ex; x++)
+					{
+						const auto viewAngle = m_projection.ViewAngle(x);
+						const auto tx = Helpers::Clip(static_cast<int>((m_pov.a + viewAngle) * xScale), texture->width);
+						texels[x - sx] = texture->pixels[texture->width * ty + tx];
+					}
+					m_frameBuffer.HorizontalLine(sx, y, texels, 1);
+				}
 			}
 		}
+	}
+
+	std::list<Frame::Span> TexturePainter::MergeSpans(const std::vector<Frame::Span>& spans)
+	{
+		std::list<Frame::Span> spanlist(spans.begin(), spans.end());
+
+		spanlist.sort();
+		auto es = spanlist.begin();
+		do
+		{
+			auto ps = es++;
+			if (es != spanlist.end() && (ps->e == es->s || ps->e == es->s - 1))
+			{
+				es->s = ps->s;
+				spanlist.erase(ps);
+			}
+		} while (es != spanlist.end());
+
+		return spanlist;
 	}
 
 	TexturePainter::~TexturePainter()

@@ -24,6 +24,22 @@ namespace rtdoom
 		return v % max;
 	}
 
+	float Helpers::Clip(float v, float max)
+	{
+		if (isfinite(v))
+		{
+			while (v < 0)
+			{
+				v += max;
+			}
+			while (v > max)
+			{
+				v -= max;
+			}
+		}
+		return v;
+	}
+
 	Helpers::Helpers()
 	{
 	}
