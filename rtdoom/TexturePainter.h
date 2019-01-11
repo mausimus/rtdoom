@@ -11,6 +11,8 @@ namespace rtdoom
 		const Projection& m_projection;
 		const WADFile& m_wadFile;
 
+		static std::list<Frame::Span> MergeSpans(const std::vector<Frame::Span>& spans);
+
 	public:
 		void PaintWall(int x, const Frame::Span& span, const Frame::PainterContext& textureContext) const override;
 		void PaintSprite(int x, int sy, std::vector<bool> clipping, const Frame::PainterContext& textureContext) const override;

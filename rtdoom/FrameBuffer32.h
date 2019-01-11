@@ -35,6 +35,7 @@ namespace rtdoom
 		virtual void VerticalLine(int x, int sy, const std::vector<int>& texels, const std::vector<float>& lightnesses) noexcept;
 		virtual void VerticalLine(int x, int sy, const std::vector<int>& texels, float lightness) noexcept;
 		virtual void HorizontalLine(int sx, int y, const std::vector<int>& texels, float lightness) noexcept;
+		virtual void HorizontalLine(int sx, int ex, int y, int colorIndex, float lightness) noexcept;
 
 		FrameBuffer32(int width, int height, const Palette& palette);
 		~FrameBuffer32();

@@ -18,6 +18,18 @@ namespace rtdoom
 			int s;
 			int e;
 			int length() const { return e - s; }
+
+			bool operator<(const Span& rhs) const
+			{
+				if (s == rhs.s)
+				{
+					return e < rhs.e;
+				}
+				else
+				{
+					return s < rhs.s;
+				}
+			}
 		};
 
 		// screen area covered by floor or ceiling

@@ -126,7 +126,7 @@ namespace rtdoom
 			const auto outerBottomY = m_projection->ViewY(distance, frontSector.floorHeight - m_gameState.m_player.z);
 
 			Frame::PainterContext outerTexture;
-			outerTexture.yScale = m_projection->TextureScale(distance, 1.0f); // yScale of 1 height
+			outerTexture.yScale = 1.0f / m_projection->TextureScale(distance, 1.0f); // yScale of 1 height
 			outerTexture.yPegging = mapSegment.lowerUnpegged ? outerBottomY : outerTopY;
 			outerTexture.textureName = mapSegment.frontSide.middleTexture;
 			outerTexture.yOffset = mapSegment.frontSide.yOffset;

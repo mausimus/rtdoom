@@ -43,6 +43,7 @@ namespace rtdoom
 		static std::string MakeString(const char data[8]);
 
 		static int Clip(int v, int max);
+		static float Clip(float v, float max);
 
 		Helpers();
 		~Helpers();

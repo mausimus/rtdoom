@@ -57,7 +57,7 @@ namespace rtdoom
 			auto offset = m_width * sy + (m_width - x - 1);
 			for (const auto t : texels)
 			{
-				if (t != 255)
+				if (t != 247)
 				{
 					const auto& color = m_palette.colors[t];
 					Pixel32& pixel = m_pixels[offset];
@@ -90,6 +90,30 @@ namespace rtdoom
 				pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
 				pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
 				pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
+
+				m_pixels[offset].argb32 = pixel.argb32;
+				offset--;
+			}
+			m_stepCallback();
+		}
+	}
+
+	void FrameBuffer32::HorizontalLine(int sx, int ex, int y, int colorIndex, float lightness) noexcept
+	{
+		if (m_pixels != nullptr && y >= 0 && y < m_height && sx >= 0 && ex < m_width)
+		{
+			lightness = Gamma(lightness);
+			auto offset = m_width * y + (m_width - sx - 1);
+			for (auto x = sx; x <= ex; x++)
+			{
+				const auto& color = s_colors[colorIndex];
+				Pixel32& pixel = m_pixels[offset];
+				pixel.argb32 = color;
+
+				pixel.argb8.a = 0;
+				pixel.argb8.r = static_cast<unsigned char>(pixel.argb8.r * lightness);
+				pixel.argb8.g = static_cast<unsigned char>(pixel.argb8.g * lightness);
+				pixel.argb8.b = static_cast<unsigned char>(pixel.argb8.b * lightness);
 
 				m_pixels[offset].argb32 = pixel.argb32;
 				offset--;

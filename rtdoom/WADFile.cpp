@@ -168,7 +168,7 @@ namespace rtdoom
 		auto p = std::make_shared<Patch>();
 		memcpy(p.get(), patchData.data(), 4 * sizeof(short));
 		p->pixels = std::make_unique<unsigned char[]>(p->width * p->height);
-		memset(p->pixels.get(), static_cast<unsigned char>(255), p->width * p->height);
+		memset(p->pixels.get(), static_cast<unsigned char>(247), p->width * p->height);
 
 		std::vector<int> columnArray(p->width);
 		memcpy(columnArray.data(), patchData.data() + 4 * sizeof(short), sizeof(int) * p->width);
@@ -264,15 +264,19 @@ namespace rtdoom
 		{
 			for (auto y = 0; y < patch->height; y++)
 			{
-				const auto color = m_palette.colors[patch->pixels[y * patch->width + x]];
-				auto dx = px + x;
-				auto dy = py + y;
-				if (dx < 0 || dx >= texture->width || dy < 0 || dy >= texture->height)
+				const auto colorIndex = patch->pixels[y * patch->width + x];
+				if (colorIndex != 247)
 				{
-					continue;
-				}
+					const auto color = m_palette.colors[colorIndex];
+					auto dx = px + x;
+					auto dy = py + y;
+					if (dx < 0 || dx >= texture->width || dy < 0 || dy >= texture->height)
+					{
+						continue;
+					}
 
-				texture->pixels[dy * texture->width + dx] = patch->pixels[y * patch->width + x];
+					texture->pixels[dy * texture->width + dx] = patch->pixels[y * patch->width + x];
+				}
 			}
 		}
 	}
