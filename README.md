@@ -10,16 +10,20 @@ Implementation of a Doom-style graphics engine in C++ 17.
 
 ### Screenshots
 
-Wireframe mode
+###### Wireframe mode
+
 ![screenshot](images/screen1.png)
 
-Solid mode
+###### Solid mode
+
 ![screenshot](images/screen2.png)
 
-Textured mode
+###### Textured mode
+
 ![screenshot](images/screen3.png)
 
-Step frame mode (see elements painted one by one)
+###### Step frame mode
+
 ![screenshot](images/screen4.png)
 
 ### Goal
