@@ -19,6 +19,9 @@ Solid mode
 Textured mode
 ![screenshot](screen3.png)
 
+Step frame mode (see elements painted one by one)
+![screenshot](screen4.png)
+
 ### Goal
 
 While I follow original algorithms which were designed for resource-constrained architectures
@@ -50,5 +53,5 @@ Test program uses SDL2 to render the raw framebuffer in a screen window, control
 
 Built on Windows / Visual Studio 2017 using C++ 17 profile.
 
-No assets included - you will need to drop off a .wad file from either the original Doom (1 or 2) or
-the [Freedoom](https://freedoom.github.io/) project into the .exe directory!
+No assets included - you will need to drop off a .wad file from either the original Doom
+(1 or 2, shareware is ok) or the [Freedoom](https://freedoom.github.io/) project into the .exe directory!

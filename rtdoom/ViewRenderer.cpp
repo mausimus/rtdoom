@@ -38,6 +38,18 @@ namespace rtdoom
 
 		// fill in floors and ceilings
 		RenderPlanes();
+
+		Frame::PainterContext sc;
+		sc.textureName = "BOSSA1";
+		sc.yScale = 1;
+		sc.lightness = 1;
+		sc.yOffset = 0;
+		sc.yPegging = 0;
+		for (int x = 0; x < 41; x++)
+		{
+			sc.texelX = x;
+			m_painter->PaintSprite(10 + x, 10, std::vector<bool>(73, true), sc);
+		}
 	}
 
 	void ViewRenderer::Initialize(FrameBuffer& frameBuffer)
@@ -105,6 +117,7 @@ namespace rtdoom
 	{
 		const auto& mapSegment = visibleSegment.mapSegment;
 		const auto& frontSector = mapSegment.frontSide.sector;
+		Frame::Clip lowerClip{ span }, middleClip{ span }, upperClip{ span };
 
 		// iterate through all vertical columns from left to right
 		for (auto x = span.s; x <= span.e; x++)
@@ -121,13 +134,13 @@ namespace rtdoom
 			const auto outerTopY = m_projection->ViewY(distance, frontSector.ceilingHeight - m_gameState.m_player.z);
 			const auto outerBottomY = m_projection->ViewY(distance, frontSector.floorHeight - m_gameState.m_player.z);
 
-			TextureContext outerTexture;
+			Frame::PainterContext outerTexture;
 			outerTexture.yScale = m_projection->TextureScale(distance, 1.0f); // yScale of 1 height
 			outerTexture.yPegging = mapSegment.lowerUnpegged ? outerBottomY : outerTopY;
 			outerTexture.textureName = mapSegment.frontSide.middleTexture;
 			outerTexture.yOffset = mapSegment.frontSide.yOffset;
 			// texel x position is the offset from player to normal vector plus offset from normal vector to view, plus static mapSegment and linedef offsets
-			outerTexture.xPos = visibleSegment.normalOffset + m_projection->Offset(visibleSegment.normalVector, viewAngle)
+			outerTexture.texelX = visibleSegment.normalOffset + m_projection->Offset(visibleSegment.normalVector, viewAngle)
 				+ mapSegment.xOffset + mapSegment.frontSide.xOffset;
 			outerTexture.isEdge = x == visibleSegment.startX || x == visibleSegment.endX;
 			outerTexture.lightness = m_projection->Lightness(distance, &mapSegment) * frontSector.lightLevel;
@@ -141,6 +154,11 @@ namespace rtdoom
 			if (outerSpan.isVisible())
 			{
 				m_painter->PaintWall(x, outerSpan, outerTexture);
+			}
+
+			if (mapSegment.isSolid)
+			{
+				middleClip.Add(x, outerTexture, outerTopY, outerBottomY);
 			}
 
 			// if the mapSegment is not a solid wall but a pass-through portal clip its back (inner) side
@@ -159,25 +177,38 @@ namespace rtdoom
 				const auto& innerSpan = m_frame->ClipVerticalSegment(x, innerTopY, innerBottomY, mapSegment.isSolid, isSky ? &s_skyHeight : nullptr, nullptr,
 					frontSector.ceilingTexture, frontSector.floorTexture, frontSector.lightLevel);
 
+				upperClip.Add(x, outerTexture, outerTopY, innerTopY);
+				lowerClip.Add(x, outerTexture, innerBottomY, outerBottomY);
+
 				if (innerSpan.isVisible())
 				{
 					// render the inner section (floor/ceiling height change)
 					if (!isSky)
 					{
 						Frame::Span upperSpan{ outerSpan.s, innerSpan.s };
-						TextureContext upperTexture{ outerTexture };
+						Frame::PainterContext upperTexture{ outerTexture };
 						upperTexture.textureName = mapSegment.frontSide.upperTexture;
 						upperTexture.yPegging = mapSegment.upperUnpegged ? outerTopY : innerTopY;
 						m_painter->PaintWall(x, upperSpan, upperTexture);
 					}
 
 					Frame::Span lowerSpan{ innerSpan.e, outerSpan.e };
-					TextureContext lowerTexture{ outerTexture };
+					Frame::PainterContext lowerTexture{ outerTexture };
 					lowerTexture.textureName = mapSegment.frontSide.lowerTexture;
 					lowerTexture.yPegging = mapSegment.lowerUnpegged ? outerTopY : innerBottomY;
 					m_painter->PaintWall(x, lowerSpan, lowerTexture);
 				}
 			}
+		}
+
+		if (mapSegment.isSolid)
+		{
+			m_frame->m_clips.push_back(middleClip);
+		}
+		else
+		{
+			m_frame->m_clips.push_back(upperClip);
+			m_frame->m_clips.push_back(lowerClip);
 		}
 	}
 

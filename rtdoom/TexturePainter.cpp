@@ -10,7 +10,7 @@ namespace rtdoom
 	{
 	}
 
-	void TexturePainter::PaintWall(int x, const Frame::Span& span, const TextureContext& textureContext) const
+	void TexturePainter::PaintWall(int x, const Frame::Span& span, const Frame::PainterContext& textureContext) const
 	{
 		if (textureContext.textureName.length() && textureContext.textureName[0] != '-')
 		{
@@ -20,7 +20,7 @@ namespace rtdoom
 				return;
 			}
 			const auto& texture = it->second;
-			const auto tx = Helpers::Clip(static_cast<int>(textureContext.xPos), texture->width);
+			const auto tx = Helpers::Clip(static_cast<int>(textureContext.texelX), texture->width);
 
 			const auto sy = std::max(0, span.s);
 			const auto ey = std::min(m_frameBuffer.m_height - 1, span.e);
@@ -37,6 +37,36 @@ namespace rtdoom
 			}
 			m_frameBuffer.VerticalLine(x, sy, texels, textureContext.lightness);
 		}
+	}
+
+	void TexturePainter::PaintSprite(int x, int sy, std::vector<bool> clipping, const Frame::PainterContext & textureContext) const
+	{
+		auto it = m_wadFile.m_sprites.find(textureContext.textureName);
+		if (it == m_wadFile.m_sprites.end())
+		{
+			return;
+		}
+		const auto& sprite = it->second;
+
+		std::vector<int> texels;
+		texels.reserve(clipping.size());
+		const float vStep = 1.0f / textureContext.yScale;
+		const auto tx = Helpers::Clip(static_cast<int>(textureContext.texelX), sprite->width);
+		float vs = 0;
+		for (auto b : clipping)
+		{
+			if (b)
+			{
+				const auto ty = Helpers::Clip(static_cast<int>(vs) + textureContext.yOffset, sprite->height);
+				texels.push_back(sprite->pixels[ty * sprite->width + tx]);
+				vs += vStep;
+			}
+			else
+			{
+				texels.push_back(255);
+			}
+		}
+		m_frameBuffer.VerticalLine(x, sy, texels, textureContext.lightness);
 	}
 
 	void TexturePainter::PaintPlane(const Frame::Plane& plane) const

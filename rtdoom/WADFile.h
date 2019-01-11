@@ -77,7 +77,7 @@ namespace rtdoom
 
 		std::vector<char> LoadLump(std::ifstream& infile, const Lump& lump);
 
-		enum class LumpType { Unknown, MapMarker, Palette, Texture, PatchNames, PatchesStart, PatchesEnd, FlatsStart, FlatsEnd };
+		enum class LumpType { Unknown, MapMarker, Palette, Texture, PatchNames, PatchesStart, PatchesEnd, FlatsStart, FlatsEnd, SpritesStart, SpritesEnd };
 
 		LumpType GetLumpType(const Lump& lumpName) const;
 
@@ -87,11 +87,14 @@ namespace rtdoom
 
 		void PastePatch(Texture * texture, const Patch * patch, int x, int y);
 
+		std::shared_ptr<Patch> LoadPatch(const std::vector<char>& patchLump);
+
 	public:
 		Palette m_palette;
 
 		std::map<std::string, MapStore> m_maps;
 		std::map<std::string, std::shared_ptr<Texture>> m_textures;
+		std::map<std::string, std::shared_ptr<Patch>> m_sprites;
 
 		WADFile(const std::string& fileName);
 		~WADFile();
