@@ -9,6 +9,7 @@ namespace rtdoom
 	class Frame
 	{
 	public:
+		// general horizontal or vertical screen span (line)
 		struct Span
 		{
 			constexpr Span(int s, int e) : s{ s }, e{ e } {}
@@ -16,8 +17,10 @@ namespace rtdoom
 			bool isVisible() const { return (s != 0 || e != 0); };
 			int s;
 			int e;
+			int length() const { return e - s; }
 		};
 
+		// screen area covered by floor or ceiling
 		struct Plane
 		{
 			Plane(float h, const std::string& textureName, float lightLevel, int height) : h{ h }, textureName{ textureName }, lightLevel{ lightLevel },
@@ -31,11 +34,57 @@ namespace rtdoom
 			void addSpan(int x, int sy, int ey);
 		};
 
+		// texturing information
+		struct PainterContext
+		{
+			std::string textureName;
+			float yScale;
+			float texelX;
+			int yPegging;
+			int yOffset;
+			bool isEdge;
+			float lightness;
+		};
+
+		// silhouette of a drawn wall
+		struct Clip
+		{
+			Clip(Span xSpan) : xSpan{ xSpan },
+				topClips(xSpan.length()), bottomClips(xSpan.length()), texelXs(xSpan.length()) {}
+
+			void Add(int x, const PainterContext& painterContext, int topClip, int bottomClip)
+			{
+				if (x == xSpan.s)
+				{
+					yScaleStart = painterContext.yScale;
+				}
+				else if (x == xSpan.e)
+				{
+					yScaleEnd = painterContext.yScale;
+				}
+				topClips.push_back(topClip);
+				bottomClips.push_back(bottomClip);
+				texelXs.push_back(static_cast<int>(painterContext.texelX));
+			}
+
+			Span xSpan;
+
+			float yScaleStart;
+			float yScaleEnd;
+
+			std::vector<int> topClips;
+			std::vector<int> bottomClips;
+			std::vector<int> texelXs;
+		};
+
 		const int m_width;
 		const int m_height;
 
 		// list of horizontal screen spans where isSolid walls have already been drawn (completely occluded)
 		std::list<Span> m_occlusion;
+
+		// drawn walls that clip anything behind them
+		std::list<Clip> m_clips;
 
 		// screen height where the last floor/ceilings have been drawn up to so far
 		std::vector<int> m_floorClip;

@@ -57,15 +57,18 @@ namespace rtdoom
 			auto offset = m_width * sy + (m_width - x - 1);
 			for (const auto t : texels)
 			{
-				const auto& color = m_palette.colors[t];
-				Pixel32& pixel = m_pixels[offset];
+				if (t != 255)
+				{
+					const auto& color = m_palette.colors[t];
+					Pixel32& pixel = m_pixels[offset];
 
-				pixel.argb8.a = 0;
-				pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
-				pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
-				pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
+					pixel.argb8.a = 0;
+					pixel.argb8.r = static_cast<unsigned char>(color.r * lightness);
+					pixel.argb8.g = static_cast<unsigned char>(color.g * lightness);
+					pixel.argb8.b = static_cast<unsigned char>(color.b * lightness);
 
-				m_pixels[offset].argb32 = pixel.argb32;
+					m_pixels[offset].argb32 = pixel.argb32;
+				}
 				offset += m_width;
 			}
 			m_stepCallback();
@@ -78,7 +81,7 @@ namespace rtdoom
 		{
 			lightness = Gamma(lightness);
 			auto offset = m_width * y + (m_width - sx - 1);
-			for (const auto t: texels)
+			for (const auto t : texels)
 			{
 				const auto& color = m_palette.colors[t];
 				Pixel32& pixel = m_pixels[offset];

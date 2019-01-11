@@ -39,7 +39,7 @@ namespace rtdoom
 					std::string lumpName = Helpers::MakeString(lumps[i + j].lumpName);
 					mapLumps.insert(make_pair(lumpName, LoadLump(infile, lumps[i + j])));
 				}
-				i += 11;
+				i += 10;
 				MapStore mapStore;
 				mapStore.Load(mapLumps);
 				m_maps.insert(make_pair(std::string(lump.lumpName), mapStore));
@@ -70,39 +70,21 @@ namespace rtdoom
 				{
 					const Lump& patchLump = lumps.at(i + j);
 					auto patchData = LoadLump(infile, patchLump);
-
-					auto p = std::make_shared<Patch>();// p;
-					memcpy(p.get(), patchData.data(), 4 * sizeof(short));
-					p->pixels = std::make_unique<unsigned char[]>(p->width * p->height);
-
-					std::vector<int> columnArray(p->width);
-					memcpy(columnArray.data(), patchData.data() + 4 * sizeof(short), sizeof(int) * p->width);
-
-					for (auto c = 0; c < p->width; c++)
-					{
-						auto columnOffset = columnArray[c];
-						unsigned char rowstart = 0;
-						while (rowstart != 255)
-						{
-							memcpy(&rowstart, patchData.data() + columnOffset++, sizeof(unsigned char));
-							if (rowstart == 255)
-							{
-								break;
-							}
-							unsigned char pixelCount;
-							unsigned char dummy;
-							memcpy(&pixelCount, patchData.data() + columnOffset++, sizeof(unsigned char));
-							memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
-							for (unsigned char pj = 0; pj < pixelCount; pj++)
-							{
-								unsigned char pixelColor;
-								memcpy(&pixelColor, patchData.data() + columnOffset++, sizeof(unsigned char));
-								p->pixels[(pj + rowstart) * p->width + c] = pixelColor;
-							}
-							memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
-						}
-					}
+					auto p = LoadPatch(patchData);
 					m_patches.insert(make_pair(Helpers::MakeString(patchLump.lumpName), p));
+					j++;
+				}
+				break;
+			}
+			case LumpType::SpritesStart:
+			{
+				int j = 1;
+				while (GetLumpType(lumps.at(i + j)) != LumpType::SpritesEnd)
+				{
+					const Lump& patchLump = lumps.at(i + j);
+					auto patchData = LoadLump(infile, patchLump);
+					auto p = LoadPatch(patchData);
+					m_sprites.insert(make_pair(Helpers::MakeString(patchLump.lumpName), p));
 					j++;
 				}
 				break;
@@ -181,6 +163,43 @@ namespace rtdoom
 		}
 	}
 
+	std::shared_ptr<WADFile::Patch> WADFile::LoadPatch(const std::vector<char>& patchData)
+	{
+		auto p = std::make_shared<Patch>();
+		memcpy(p.get(), patchData.data(), 4 * sizeof(short));
+		p->pixels = std::make_unique<unsigned char[]>(p->width * p->height);
+		memset(p->pixels.get(), static_cast<unsigned char>(255), p->width * p->height);
+
+		std::vector<int> columnArray(p->width);
+		memcpy(columnArray.data(), patchData.data() + 4 * sizeof(short), sizeof(int) * p->width);
+
+		for (auto c = 0; c < p->width; c++)
+		{
+			auto columnOffset = columnArray[c];
+			unsigned char rowstart = 0;
+			while (rowstart != 255)
+			{
+				memcpy(&rowstart, patchData.data() + columnOffset++, sizeof(unsigned char));
+				if (rowstart == 255)
+				{
+					break;
+				}
+				unsigned char pixelCount;
+				unsigned char dummy;
+				memcpy(&pixelCount, patchData.data() + columnOffset++, sizeof(unsigned char));
+				memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
+				for (unsigned char pj = 0; pj < pixelCount; pj++)
+				{
+					unsigned char pixelColor;
+					memcpy(&pixelColor, patchData.data() + columnOffset++, sizeof(unsigned char));
+					p->pixels[(pj + rowstart) * p->width + c] = pixelColor;
+				}
+				memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
+			}
+		}
+		return p;
+	}
+
 	WADFile::LumpType WADFile::GetLumpType(const Lump& lump) const
 	{
 		if (lump.dataSize == 0)
@@ -209,6 +228,17 @@ namespace rtdoom
 				if (lump.lumpName[3] == 'E')
 				{
 					return LumpType::FlatsEnd;
+				}
+			}
+			if (lump.lumpName[0] == 'S' && lump.lumpName[1] == '_')
+			{
+				if (lump.lumpName[2] == 'S')
+				{
+					return LumpType::SpritesStart;
+				}
+				if (lump.lumpName[2] == 'E')
+				{
+					return LumpType::SpritesEnd;
 				}
 			}
 			return LumpType::Unknown;

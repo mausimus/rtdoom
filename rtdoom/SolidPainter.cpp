@@ -10,12 +10,16 @@ namespace rtdoom
 	{
 	}
 
-	void SolidPainter::PaintWall(int x, const Frame::Span& span, const TextureContext& textureContext) const
+	void SolidPainter::PaintWall(int x, const Frame::Span& span, const Frame::PainterContext& textureContext) const
 	{
 		if (textureContext.textureName != "-")
 		{
 			m_frameBuffer.VerticalLine(x, span.s, span.e, s_wallColor, textureContext.lightness);
 		}
+	}
+
+	void SolidPainter::PaintSprite(int x, int sy, std::vector<bool> clipping, const Frame::PainterContext & textureContext) const
+	{
 	}
 
 	void SolidPainter::PaintPlane(const Frame::Plane& plane) const
