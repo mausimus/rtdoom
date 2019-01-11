@@ -39,17 +39,8 @@ namespace rtdoom
 		// fill in floors and ceilings
 		RenderPlanes();
 
-		Frame::PainterContext sc;
-		sc.textureName = "BOSSA1";
-		sc.yScale = 1;
-		sc.lightness = 1;
-		sc.yOffset = 0;
-		sc.yPegging = 0;
-		for (int x = 0; x < 41; x++)
-		{
-			sc.texelX = x;
-			m_painter->PaintSprite(10 + x, 10, std::vector<bool>(73, true), sc);
-		}
+		// HUD etc.
+		RenderOverlay();
 	}
 
 	void ViewRenderer::Initialize(FrameBuffer& frameBuffer)
@@ -252,6 +243,22 @@ namespace rtdoom
 	Frame* ViewRenderer::GetLastFrame() const
 	{
 		return m_frame.get();
+	}
+
+	void ViewRenderer::RenderOverlay() const
+	{
+		// temporary - draw a demon
+		Frame::PainterContext sc;
+		sc.textureName = "BOSSA1";
+		sc.yScale = 1;
+		sc.lightness = 1;
+		sc.yOffset = 0;
+		sc.yPegging = 0;
+		for (int x = 0; x < 41; x++)
+		{
+			sc.texelX = static_cast<float>(x);
+			m_painter->PaintSprite(10 + x, 10, std::vector<bool>(73, true), sc);
+		}
 	}
 
 	ViewRenderer::~ViewRenderer()
