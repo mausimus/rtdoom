@@ -1,6 +1,6 @@
 ## rtdoom
 
-Implementation of a Doom-style graphics engine in C++ 17.
+Implementation of a Doom-style graphics engine in C++ 17
 
 ### Features
 
