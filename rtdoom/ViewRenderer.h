@@ -38,6 +38,7 @@ namespace rtdoom
 		void RenderMapSegment(const Segment& segment) const;
 		void RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const;
 		void RenderPlanes() const;
+		void RenderSprites() const;
 		void RenderOverlay() const;
 		Angle GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
 

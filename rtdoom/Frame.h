@@ -49,6 +49,7 @@ namespace rtdoom
 		// texturing information
 		struct PainterContext
 		{
+			PainterContext() : yPegging{ 0 }, yOffset{ 0 } {}
 			std::string textureName;
 			float yScale;
 			float texelX;
@@ -62,7 +63,7 @@ namespace rtdoom
 		struct Clip
 		{
 			Clip(Span xSpan) : xSpan{ xSpan },
-				topClips(xSpan.length()), bottomClips(xSpan.length()), texelXs(xSpan.length()) {}
+				topClips(), bottomClips(), texelXs() {}
 
 			void Add(int x, const PainterContext& painterContext, int topClip, int bottomClip)
 			{
@@ -110,6 +111,9 @@ namespace rtdoom
 		// spaces between walls with floors and ceilings
 		std::deque<Plane> m_floorPlanes;
 		std::deque<Plane> m_ceilingPlanes;
+
+		// visible sectors
+		std::unordered_set<int> m_sectors;
 
 		// add vertical span to existing planes
 		void MergeIntoPlane(std::deque<Plane>& planes, float height, const std::string& textureName, float lightLevel, int x, int sy, int ey);

@@ -21,7 +21,7 @@ namespace rtdoom
 		auto normalAngle = lineAngle + PI2;
 		auto sx = l.s.x - m_player.x;
 		auto sy = l.s.y - m_player.y;
-		auto startDistance = sqrt(sx * sx + sy * sy);
+		auto startDistance = Projection::Distance(l.s, m_player);
 		auto startAngle = MathCache::instance().ArcTan(sy, sx);
 		auto normalDistance = startDistance * MathCache::instance().Cos(normalAngle - startAngle);
 		return Vector(normalAngle, abs(normalDistance));
@@ -34,7 +34,7 @@ namespace rtdoom
 		auto normalAngle = lineAngle + PI2;
 		auto sx = l.s.x - m_player.x;
 		auto sy = l.s.y - m_player.y;
-		auto startDistance = sqrt(sx * sx + sy * sy);
+		auto startDistance = Projection::Distance(l.s, m_player);
 		auto startAngle = MathCache::instance().ArcTan(sy, sx);
 		auto normalOffset = fabs(startDistance * MathCache::instance().Sin(normalAngle - startAngle));
 		if (NormalizeAngle(normalAngle - startAngle) > 0)
@@ -58,6 +58,14 @@ namespace rtdoom
 		auto viewRelativeAngle = NormalizeAngle(inverseNormalAngle - (m_player.a + viewAngle));
 		auto interceptDistance = normalVector.d / MathCache::instance().Cos(viewRelativeAngle);
 		return abs(MathCache::instance().Cos(viewAngle) * interceptDistance);
+	}
+
+	// simple distance between two points
+	float Projection::Distance(const Point& a, const Point& b)
+	{
+		const auto dx = b.x - a.x;
+		const auto dy = b.y - a.y;
+		return sqrt(dx * dx + dy * dy);
 	}
 
 	// texture offset vs normal intercept
@@ -146,11 +154,9 @@ namespace rtdoom
 	}
 
 	// scaling factor for texturing
-	float Projection::TextureScale(float distance, float height) const noexcept
+	float Projection::TextureScale(float distance) const noexcept
 	{
-		auto dc = (m_viewHeight * 30.0f) / distance;
-		auto hf = fabsf(height / 23.0f);
-		return dc * hf;
+		return distance / (m_viewHeight * 1.30434782f);
 	}
 
 	// trim angles for a visible span

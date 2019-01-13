@@ -50,8 +50,8 @@ namespace rtdoom
 		{
 			short width;
 			short height;
-			short top;
 			short left;
+			short top;
 			std::unique_ptr<unsigned char[]> pixels;
 		};
 
@@ -92,6 +92,7 @@ namespace rtdoom
 	public:
 		Palette m_palette;
 
+		static const std::map<int, std::string> m_thingTypes;
 		std::map<std::string, MapStore> m_maps;
 		std::map<std::string, std::shared_ptr<Texture>> m_textures;
 		std::map<std::string, std::shared_ptr<Patch>> m_sprites;

@@ -51,13 +51,13 @@ namespace rtdoom
 
 	void FrameBuffer32::VerticalLine(int x, int sy, const std::vector<int>& texels, float lightness) noexcept
 	{
-		if (m_pixels != nullptr && x >= 0 && x < m_width && texels.size())
+		if (m_pixels != nullptr && x >= 0 && x < m_width && texels.size() && sy < m_height)
 		{
 			lightness = Gamma(lightness);
 			auto offset = m_width * sy + (m_width - x - 1);
 			for (const auto t : texels)
 			{
-				if (t != 247)
+				if (t != 247 && sy >= 0)
 				{
 					const auto& color = m_palette.colors[t];
 					Pixel32& pixel = m_pixels[offset];
@@ -70,6 +70,11 @@ namespace rtdoom
 					m_pixels[offset].argb32 = pixel.argb32;
 				}
 				offset += m_width;
+				sy++;
+				if (sy == m_height)
+				{
+					break;
+				}
 			}
 			m_stepCallback();
 		}

@@ -18,7 +18,7 @@ namespace rtdoom
 		}
 	}
 
-	void SolidPainter::PaintSprite(int x, int sy, std::vector<bool> clipping, const Frame::PainterContext & textureContext) const
+	void SolidPainter::PaintSprite(int /*x*/, int /*sy*/, std::vector<bool> /*occlusion*/, const Frame::PainterContext & /*textureContext*/) const
 	{
 	}
 

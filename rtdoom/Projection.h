@@ -18,10 +18,11 @@ namespace rtdoom
 		static Angle AngleDist(Angle a1, Angle a2) noexcept;
 		static Angle NormalizeAngle(Angle angle) noexcept;
 		static bool NormalizeViewAngleSpan(Angle& a1, Angle& a2) noexcept;
+		static float Distance(const Point& a, const Point& b);
 
 		int ViewX(Angle viewAngle) const noexcept;
 		int ViewY(float distance, float height) const noexcept;
-		float TextureScale(float distance, float height) const noexcept;
+		float TextureScale(float distance) const noexcept;
 		Angle ViewAngle(int screenX) const noexcept;
 		Vector NormalVector(const Line& l) const;
 		float NormalOffset(const Line& l) const;
