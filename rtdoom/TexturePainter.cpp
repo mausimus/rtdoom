@@ -85,7 +85,7 @@ namespace rtdoom
 		const auto aStep = PI4 / (m_frameBuffer.m_width / 2);
 
 		// floors/ceilings are most efficient painted in horizontal strips since distance to the player is constant
-		for (size_t y = 0; y < plane.spans.size(); y++)
+		for (auto y = 0; y < plane.spans.size(); y++)
 		{
 			const auto& spans = plane.spans[y];
 			if (spans.empty())

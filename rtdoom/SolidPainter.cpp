@@ -26,7 +26,7 @@ namespace rtdoom
 	{
 		const bool isSky = plane.isSky();
 
-		for (size_t y = 0; y < plane.spans.size(); y++)
+		for (auto y = 0; y < plane.spans.size(); y++)
 		{
 			const auto& spans = plane.spans[y];
 			auto centerDistance = m_projection.PlaneDistance(y, plane.h);

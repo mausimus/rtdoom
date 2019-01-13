@@ -35,11 +35,13 @@ namespace rtdoom
 		const float s_skyHeight = NAN;
 
 		void Initialize(FrameBuffer& frameBuffer);
-		void RenderMapSegment(const Segment& segment) const;
-		void RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const;
+		void RenderSegments() const;
 		void RenderPlanes() const;
 		void RenderSprites() const;
 		void RenderOverlay() const;
+		void RenderMapSegment(const Segment& segment) const;
+		void RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const;
+		std::vector<std::vector<bool>> ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, int centerX, float spriteScale) const;
 		Angle GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
 
 		FrameBuffer* m_frameBuffer;
