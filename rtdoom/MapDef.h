@@ -18,12 +18,17 @@ namespace rtdoom
 		void ProcessChildRef(unsigned short childRef, const Point& pov, std::deque<std::shared_ptr<Segment>>& segments) const;
 		void ProcessSubsector(const MapStore::SubSector& subSector, std::deque<std::shared_ptr<Segment>>& segments) const;
 		void OpenDoors();
+		void Initialize();
 		void BuildWireframe();
 		void BuildSegments();
+		void BuildSectors();
+		void BuildThings();
 
 	public:
 		static bool IsInFrontOf(const Point& pov, const Line& line) noexcept;
 		std::vector<Line> m_wireframe;
+		std::vector<Sector> m_sectors;
+		std::vector<std::vector<Thing>> m_things;
 
 		Thing GetStartingPosition() const;
 		std::optional<Sector> GetSector(const Point& pov) const;

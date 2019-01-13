@@ -29,9 +29,19 @@ namespace rtdoom
 
 	struct Thing : Location
 	{
-		constexpr Thing(float x, float y, float z, Angle a) : Location{ x, y, z }, a{ a } {}
+		Thing(float x, float y, float z, Angle a) : Location{ x, y, z }, a{ a }, type{ -1 }, sectorId{ -1 }, textureName{ "" } {}
 
 		Angle a;
+		int thingId;
+		int sectorId;
+		int type;
+		float distance;
+		std::string textureName;
+
+		bool operator < (const Thing& str) const
+		{
+			return (distance > str.distance);
+		}
 	};
 
 	struct Line
@@ -44,9 +54,10 @@ namespace rtdoom
 
 	struct Sector
 	{
-		Sector() {}
+		Sector() : sectorId{ -1 } {}
 
-		Sector(const MapStore::Sector& s) :
+		Sector(int sectorId, const MapStore::Sector& s) :
+			sectorId{ sectorId },
 			floorHeight{ static_cast<float>(s.floorHeight) },
 			ceilingHeight{ static_cast<float>(s.ceilingHeight) },
 			ceilingTexture{ Helpers::MakeString(s.ceilingTexture) },
@@ -54,6 +65,7 @@ namespace rtdoom
 			lightLevel{ s.lightLevel / 255.0f },
 			isSky{ strcmp(s.ceilingTexture, "F_SKY1") == 0 } {}
 
+		int sectorId;
 		std::string ceilingTexture;
 		std::string floorTexture;
 		float floorHeight;

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "rtdoom.h"
 #include "MapDef.h"
+#include "WADFile.h"
 
 using std::vector;
 using std::deque;
@@ -12,17 +13,22 @@ namespace rtdoom
 	MapDef::MapDef(const MapStore& mapStore) :
 		m_store{ mapStore }
 	{
-		OpenDoors();
-		BuildWireframe();
-		BuildSegments();
+		Initialize();
 	}
 
 	MapDef::MapDef(const string& mapFolder)
 	{
 		m_store.Load(mapFolder);
+		Initialize();
+	}
+
+	void MapDef::Initialize()
+	{
 		OpenDoors();
 		BuildWireframe();
 		BuildSegments();
+		BuildSectors();
+		BuildThings();
 	}
 
 	void MapDef::OpenDoors()
@@ -51,7 +57,7 @@ namespace rtdoom
 		return segments;
 	}
 
-	// find the first sector to draw (POV location)
+	// find the sector where this point is located
 	std::optional<Sector> MapDef::GetSector(const Point& pov) const
 	{
 		auto treeIndex = m_store.m_nodes.size() - 1;
@@ -67,11 +73,13 @@ namespace rtdoom
 					const bool isInFront = IsInFrontOf(pov, m_store.m_vertexes[ld.startVertex], m_store.m_vertexes[ld.endVertex]);
 					if (ld.leftSideDef < 32000 && !isInFront)
 					{
-						return m_store.m_sectors[m_store.m_sideDefs[ld.leftSideDef].sector];
+						const auto sectorId = m_store.m_sideDefs[ld.leftSideDef].sector;
+						return m_sectors[sectorId];
 					}
 					else if (ld.rightSideDef < 32000 && isInFront)
 					{
-						return m_store.m_sectors[m_store.m_sideDefs[ld.rightSideDef].sector];
+						const auto sectorId = m_store.m_sideDefs[ld.rightSideDef].sector;
+						return m_sectors[sectorId];
 					}
 				}
 				return std::nullopt;
@@ -196,22 +204,22 @@ namespace rtdoom
 			{
 				isSolid = lineDef.leftSideDef > 32000;
 				frontSide = m_store.m_sideDefs[lineDef.leftSideDef];
-				frontSector = Sector{ m_store.m_sectors[frontSide.sector] };
+				frontSector = Sector{ frontSide.sector, m_store.m_sectors[frontSide.sector] };
 				if (lineDef.rightSideDef < 32000)
 				{
 					backSide = m_store.m_sideDefs[lineDef.rightSideDef];
-					backSector = Sector{ m_store.m_sectors[backSide.sector] };
+					backSector = Sector{ backSide.sector, m_store.m_sectors[backSide.sector] };
 				}
 			}
 			else if (mapSegment.direction == 0 && lineDef.rightSideDef < 32000)
 			{
 				isSolid = lineDef.leftSideDef > 32000;
 				frontSide = m_store.m_sideDefs[lineDef.rightSideDef];
-				frontSector = Sector{ m_store.m_sectors[frontSide.sector] };
+				frontSector = Sector{ frontSide.sector, m_store.m_sectors[frontSide.sector] };
 				if (lineDef.leftSideDef < 32000)
 				{
 					backSide = m_store.m_sideDefs[lineDef.leftSideDef];
-					backSector = Sector{ m_store.m_sectors[backSide.sector] };
+					backSector = Sector{ backSide.sector, m_store.m_sectors[backSide.sector] };
 				}
 			}
 
@@ -228,6 +236,39 @@ namespace rtdoom
 		for (auto i = 0; i < subSector.numSegments; i++)
 		{
 			segments.push_back(m_segments[subSector.firstSegment + i]);
+		}
+	}
+
+	void MapDef::BuildSectors()
+	{
+		int s = 0;
+		for (const auto& sector : m_store.m_sectors)
+		{
+			m_sectors.emplace_back(Sector(s++, sector));
+		}
+	}
+
+	void MapDef::BuildThings()
+	{
+		int id = 0;
+		m_things.resize(m_sectors.size());
+		for (const auto& thing : m_store.m_things)
+		{
+			Thing t(static_cast<float>(thing.x), static_cast<float>(thing.y), 0, static_cast<float>(thing.a / 180.0f * PI));
+			const auto sector = GetSector(t);
+			if (sector.has_value())
+			{
+				t.sectorId = sector->sectorId;
+				t.thingId = id++;
+				t.type = thing.type;
+				const auto& tt = WADFile::m_thingTypes.find(thing.type);
+				if (tt != WADFile::m_thingTypes.end())
+				{
+					t.textureName = tt->second;
+				}
+				t.z = m_store.m_sectors[t.sectorId].floorHeight;
+				m_things[t.sectorId].emplace_back(t);
+			}
 		}
 	}
 

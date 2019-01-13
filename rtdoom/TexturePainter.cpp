@@ -39,7 +39,7 @@ namespace rtdoom
 		}
 	}
 
-	void TexturePainter::PaintSprite(int x, int sy, std::vector<bool> clipping, const Frame::PainterContext & textureContext) const
+	void TexturePainter::PaintSprite(int x, int sy, std::vector<bool> occlusion, const Frame::PainterContext & textureContext) const
 	{
 		auto it = m_wadFile.m_sprites.find(textureContext.textureName);
 		if (it == m_wadFile.m_sprites.end())
@@ -49,22 +49,22 @@ namespace rtdoom
 		const auto& sprite = it->second;
 
 		std::vector<int> texels;
-		texels.reserve(clipping.size());
+		texels.reserve(occlusion.size());
 		const float vStep = textureContext.yScale;
 		const auto tx = Helpers::Clip(static_cast<int>(textureContext.texelX), sprite->width);
 		float vs = 0;
-		for (auto b : clipping)
+		for (auto o : occlusion)
 		{
-			if (b)
+			if (!o)
 			{
 				const auto ty = Helpers::Clip(static_cast<int>(vs) + textureContext.yOffset, sprite->height);
 				texels.push_back(sprite->pixels[ty * sprite->width + tx]);
-				vs += vStep;
 			}
 			else
 			{
-				texels.push_back(255);
+				texels.push_back(247);
 			}
+			vs += vStep;
 		}
 		m_frameBuffer.VerticalLine(x, sy, texels, textureContext.lightness);
 	}

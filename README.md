@@ -5,7 +5,7 @@ Implementation of a Doom-style graphics engine in C++ 17.
 ### Features
 
 * from-scratch software-based rendering implementation (no 3D libraries used)
-* following originally used algorithms: BSP tree, no Z-buffer, no overdraw
+* following originally used algorithms: BSP tree, occlussion maps instead of z-buffer, no overdraw
 * ability to load original Doom WAD files
 
 ### Screenshots
@@ -40,7 +40,7 @@ of algorithms used in the original game, most of which are replicated here.
 
 ### To Do
 
-* sprites
+* semi-transparent walls
 * clipping
 * optimize/parallelize!
 
