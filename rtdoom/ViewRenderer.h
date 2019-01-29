@@ -41,6 +41,9 @@ namespace rtdoom
 		void RenderOverlay() const;
 		void RenderMapSegment(const Segment& segment) const;
 		void RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const;
+		void RenderSpriteThing(Frame::SpriteThing* const thing) const;
+		void RenderSpriteWall(Frame::SpriteWall* const wall) const;
+
 		std::vector<std::vector<bool>> ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, int centerX, float spriteScale) const;
 		Angle GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
 

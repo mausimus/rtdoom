@@ -196,13 +196,12 @@ namespace rtdoom
 			const Vertex s{ mapStartVertex.x, mapStartVertex.y };
 			const Vertex e{ mapEndVertex.x, mapEndVertex.y };
 
-			bool isSolid = false;
 			const auto& lineDef = m_store.m_lineDefs[mapSegment.lineDef];
+			bool isSolid = lineDef.leftSideDef > 32000 || lineDef.rightSideDef > 32000;
 			Sector frontSector, backSector;
 			MapStore::SideDef frontSide, backSide;
 			if (mapSegment.direction == 1 && lineDef.leftSideDef < 32000)
 			{
-				isSolid = lineDef.leftSideDef > 32000;
 				frontSide = m_store.m_sideDefs[lineDef.leftSideDef];
 				frontSector = Sector{ frontSide.sector, m_store.m_sectors[frontSide.sector] };
 				if (lineDef.rightSideDef < 32000)
@@ -213,7 +212,6 @@ namespace rtdoom
 			}
 			else if (mapSegment.direction == 0 && lineDef.rightSideDef < 32000)
 			{
-				isSolid = lineDef.leftSideDef > 32000;
 				frontSide = m_store.m_sideDefs[lineDef.rightSideDef];
 				frontSector = Sector{ frontSide.sector, m_store.m_sectors[frontSide.sector] };
 				if (lineDef.leftSideDef < 32000)

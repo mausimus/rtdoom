@@ -156,14 +156,13 @@ namespace rtdoom
 			const auto& outerSpan = m_frame->ClipVerticalSegment(x, outerTopY, outerBottomY, mapSegment.isSolid, &ceilingHeight, &floorHeight,
 				frontSector.ceilingTexture, frontSector.floorTexture, frontSector.lightLevel);
 
-			if (outerSpan.isVisible())
-			{
-				m_painter->PaintWall(x, outerSpan, outerTexture);
-			}
-
 			if (mapSegment.isSolid)
 			{
 				middleClip.Add(x, outerTexture, 0, m_frameBuffer->m_height - 1);
+				if (outerSpan.isVisible())
+				{
+					m_painter->PaintWall(x, outerSpan, outerTexture);
+				}
 			}
 			else
 			{
@@ -201,6 +200,12 @@ namespace rtdoom
 					lowerTexture.textureName = mapSegment.frontSide.lowerTexture;
 					lowerTexture.yPegging = mapSegment.lowerUnpegged ? outerTopY : innerBottomY;
 					m_painter->PaintWall(x, lowerSpan, lowerTexture);
+
+					// if there's a middle texture paint it as sprite (could be semi-transparent)
+					if (outerTexture.textureName != "-")
+					{
+						m_frame->m_sprites.push_back(std::make_unique<Frame::SpriteWall>(x, innerSpan, outerTexture, distance));
+					}
 				}
 			}
 		}
@@ -231,67 +236,80 @@ namespace rtdoom
 		}
 	}
 
-	// render sprites (things)
+	bool spriteSorter(const std::unique_ptr<Frame::Sprite>& a, const std::unique_ptr<Frame::Sprite>& b) { return (a->distance > b->distance); };
+
+	// render sprites (things or semi-transparent walls)
 	void ViewRenderer::RenderSprites() const
 	{
-		// collect things to draw by going through things located in sectors visited during frame drawing
-		std::vector<Thing> things;
+		// add things in visited sectors to list of sprites
 		for (const auto s : m_frame->m_sectors)
 		{
 			if (s >= 0)
 			{
-				things.insert(things.end(), m_gameState.m_mapDef->m_things[s].begin(), m_gameState.m_mapDef->m_things[s].end());
-			}
-		}
-
-		// sort from farthest to nearest
-		for (auto& thing : things)
-		{
-			thing.distance = Projection::Distance(thing, m_gameState.m_player);
-		}
-		std::sort(things.begin(), things.end());
-
-		for (const auto& thing : things)
-		{
-			const auto spritePatch = m_wadFile.m_sprites.find(thing.textureName);
-			const auto viewAngle = m_projection->ProjectionAngle(thing);
-			if (thing.distance < s_minDistance || thing.textureName.empty() || spritePatch == m_wadFile.m_sprites.end() || viewAngle < -PI4 || viewAngle > PI4)
-			{
-				continue;
-			}
-
-			const auto centerDistance = thing.distance * MathCache::instance().Cos(viewAngle);
-			const auto scale = m_projection->TextureScale(centerDistance);
-			if (scale < s_minScale)
-			{
-				continue;
-			}
-
-			const auto midDistance = MathCache::instance().Tan(viewAngle) / PI4;
-			const auto centerX = static_cast<int>((m_frameBuffer->m_width / 2) * (1 + midDistance));
-			const auto centerY = m_projection->ViewY(centerDistance, thing.z - m_gameState.m_player.z);
-			const auto& texture = spritePatch->second;
-			const auto spriteWidth = static_cast<int>(texture->width / scale);
-			const auto spriteHeight = static_cast<int>(texture->height / scale);
-			const auto startY = static_cast<int>(centerY - texture->top / scale);
-			auto startX = static_cast<int>(centerX - texture->left / scale);
-
-			// clip spritePatch against already drawn walls
-			const auto& occlusionMatrix = ClipSprite(startX, startY, spriteWidth, spriteHeight, centerX, scale);
-
-			// draw spritePatch column by column
-			Frame::PainterContext spriteContext;
-			spriteContext.textureName = thing.textureName;
-			spriteContext.yScale = scale;
-			spriteContext.lightness = m_gameState.m_mapDef->m_sectors[thing.sectorId].lightLevel * m_projection->Lightness(centerDistance);
-			for (int x = 0; x < spriteWidth; x++)
-			{
-				const auto screenX = startX + x;
-				if (screenX >= 0 && screenX < m_frameBuffer->m_width)
+				for (const auto t : m_gameState.m_mapDef->m_things[s])
 				{
-					spriteContext.texelX = static_cast<float>(x) * texture->width / spriteWidth;
-					m_painter->PaintSprite(screenX, startY, occlusionMatrix[x], spriteContext);
+					m_frame->m_sprites.push_back(std::make_unique<Frame::SpriteThing>(t, Projection::Distance(t, m_gameState.m_player)));
 				}
+			}
+		}
+
+		// sort and draw sprites farthest to nearest
+		std::sort(m_frame->m_sprites.begin(), m_frame->m_sprites.end(), spriteSorter);
+		for (const auto& sprite : m_frame->m_sprites)
+		{
+			if (sprite->IsThing())
+			{
+				RenderSpriteThing(dynamic_cast<Frame::SpriteThing* const>(sprite.get()));
+			}
+			else if (sprite->IsWall())
+			{
+				RenderSpriteWall(dynamic_cast<Frame::SpriteWall* const>(sprite.get()));
+
+			}
+		}
+	}
+
+	// render things
+	void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
+	{
+		const auto spritePatch = m_wadFile.m_sprites.find(thing->textureName);
+		const auto viewAngle = m_projection->ProjectionAngle(*thing);
+		if (thing->distance < s_minDistance || thing->textureName.empty() || spritePatch == m_wadFile.m_sprites.end() || viewAngle < -PI4 || viewAngle > PI4)
+		{
+			return;
+		}
+
+		const auto centerDistance = thing->distance * MathCache::instance().Cos(viewAngle);
+		const auto scale = m_projection->TextureScale(centerDistance);
+		if (scale < s_minScale)
+		{
+			return;
+		}
+
+		const auto midDistance = MathCache::instance().Tan(viewAngle) / PI4;
+		const auto centerX = static_cast<int>((m_frameBuffer->m_width / 2) * (1 + midDistance));
+		const auto centerY = m_projection->ViewY(centerDistance, thing->z - m_gameState.m_player.z);
+		const auto& texture = spritePatch->second;
+		const auto spriteWidth = static_cast<int>(texture->width / scale);
+		const auto spriteHeight = static_cast<int>(texture->height / scale);
+		const auto startY = static_cast<int>(centerY - texture->top / scale);
+		auto startX = static_cast<int>(centerX - texture->left / scale);
+
+		// clip spritePatch against already drawn walls
+		const auto& occlusionMatrix = ClipSprite(startX, startY, spriteWidth, spriteHeight, centerX, scale);
+
+		// draw spritePatch column by column
+		Frame::PainterContext spriteContext;
+		spriteContext.textureName = thing->textureName;
+		spriteContext.yScale = scale;
+		spriteContext.lightness = m_gameState.m_mapDef->m_sectors[thing->sectorId].lightLevel * m_projection->Lightness(centerDistance);
+		for (int x = 0; x < spriteWidth; x++)
+		{
+			const auto screenX = startX + x;
+			if (screenX >= 0 && screenX < m_frameBuffer->m_width)
+			{
+				spriteContext.texelX = static_cast<float>(x) * texture->width / spriteWidth;
+				m_painter->PaintSprite(screenX, startY, occlusionMatrix[x], spriteContext);
 			}
 		}
 	}
@@ -337,6 +355,12 @@ namespace rtdoom
 			}
 		}
 		return occlusion;
+	}
+
+	// render semi-transparent walls
+	void ViewRenderer::RenderSpriteWall(Frame::SpriteWall* const wall) const
+	{
+		m_painter->PaintWall(wall->x, wall->span, wall->textureContext);
 	}
 
 	void ViewRenderer::RenderOverlay() const
