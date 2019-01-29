@@ -90,6 +90,54 @@ namespace rtdoom
 			std::vector<int> texelXs;
 		};
 
+		// overlay sprite drawn in last phase
+		struct Sprite
+		{
+			Sprite(float distance) : distance(distance) { }
+
+			float distance;
+
+			virtual bool IsThing() const
+			{
+				return false;
+			}
+
+			virtual bool IsWall() const
+			{
+				return false;
+			}
+
+			virtual ~Sprite()
+			{ }
+		};
+
+		// thing/object sprite
+		struct SpriteThing : public Sprite, public Thing
+		{
+			SpriteThing(const Thing& thing, float distance) : Thing(thing), Sprite(distance) {}
+
+			bool IsThing() const override
+			{
+				return true;
+			}
+		};
+
+		// semi-transparent wall sprite
+		struct SpriteWall : public Sprite
+		{
+			SpriteWall(int x, const Span& span, PainterContext& textureContext, float distance) : Sprite(distance), x(x), span(span), textureContext(textureContext) {}
+
+			bool IsWall() const override
+			{
+				return true;
+			}
+
+			int x;
+			Span span;
+			PainterContext textureContext;
+		};
+
+		// viewport
 		const int m_width;
 		const int m_height;
 
@@ -98,6 +146,9 @@ namespace rtdoom
 
 		// drawn walls that clip anything behind them
 		std::list<Clip> m_clips;
+
+		// sprites (in-game objects and semi-transparent walls)
+		std::vector<std::unique_ptr<Sprite>> m_sprites;
 
 		// screen height where the last floor/ceilings have been drawn up to so far
 		std::vector<int> m_floorClip;

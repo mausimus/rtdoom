@@ -38,12 +38,6 @@ as they could, many values are not precalculated etc.)
 See Fabien Sanglard's [Game Engine Black Book: DOOM](https://fabiensanglard.net/gebbdoom/) for a walkthrough
 of algorithms used in the original game, most of which are replicated here.
 
-### To Do
-
-* semi-transparent walls
-* clipping
-* optimize/parallelize!
-
 ### Code
 
 * [ViewRenderer.cpp](rtdoom/ViewRenderer.cpp) contains the core of the frame rendering algorithm

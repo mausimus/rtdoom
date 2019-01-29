@@ -148,6 +148,7 @@ namespace rtdoom
 					t->name = Helpers::MakeString(textureInfo.name);
 					t->masked = textureInfo.masked;
 					t->pixels = std::make_unique<unsigned char[]>(t->width * t->height);
+					memset(t->pixels.get(), static_cast<unsigned char>(247), t->width * t->height);
 
 					for (const auto& p : patches)
 					{

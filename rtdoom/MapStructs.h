@@ -35,13 +35,12 @@ namespace rtdoom
 		int thingId;
 		int sectorId;
 		int type;
-		float distance;
 		std::string textureName;
-
+		/*
 		bool operator < (const Thing& str) const
 		{
 			return (distance > str.distance);
-		}
+		}*/
 	};
 
 	struct Line
