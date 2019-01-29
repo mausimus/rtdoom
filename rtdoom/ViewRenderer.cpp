@@ -236,8 +236,6 @@ namespace rtdoom
 		}
 	}
 
-	bool spriteSorter(const std::unique_ptr<Frame::Sprite>& a, const std::unique_ptr<Frame::Sprite>& b) { return (a->distance > b->distance); };
-
 	// render sprites (things or semi-transparent walls)
 	void ViewRenderer::RenderSprites() const
 	{
@@ -254,7 +252,11 @@ namespace rtdoom
 		}
 
 		// sort and draw sprites farthest to nearest
-		std::sort(m_frame->m_sprites.begin(), m_frame->m_sprites.end(), spriteSorter);
+		std::sort(m_frame->m_sprites.begin(), m_frame->m_sprites.end(),
+			[](const std::unique_ptr<Frame::Sprite>& a, const std::unique_ptr<Frame::Sprite>& b) {
+				return (a->distance > b->distance);
+			});
+
 		for (const auto& sprite : m_frame->m_sprites)
 		{
 			if (sprite->IsThing())
