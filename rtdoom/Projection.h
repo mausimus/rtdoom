@@ -29,6 +29,7 @@ namespace rtdoom
 		float Distance(const Vector& normalVector, Angle viewAngle) const;
 		float Offset(const Vector& normalVector, Angle viewAngle) const;
 		float PlaneDistance(int y, float height) const noexcept;
+		Angle AbsoluteAngle(const Point& p) const;
 		Angle ProjectionAngle(const Point& p) const;
 		float Lightness(float distance, const Segment* segment = nullptr) const;
 

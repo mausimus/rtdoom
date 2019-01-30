@@ -85,7 +85,9 @@ namespace rtdoom
 
 		std::vector<std::string> m_patchNames;
 
-		void PastePatch(Texture * texture, const Patch * patch, int x, int y);
+		void PastePatch(Texture* texture, const Patch* patch, int x, int y);
+
+		std::shared_ptr<Patch> FlipPatch(const std::shared_ptr<Patch>& patch);
 
 		std::shared_ptr<Patch> LoadPatch(const std::vector<char>& patchLump);
 

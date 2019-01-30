@@ -8,6 +8,7 @@ namespace rtdoom
 	{
 	public:
 		std::unique_ptr<MapDef> m_mapDef;
+		float m_step;
 		Thing m_player;
 
 		void Move(int m, int r, float step);

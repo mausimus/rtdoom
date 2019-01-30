@@ -158,6 +158,7 @@ namespace rtdoom
 		int m_numSegments = 0;
 		int m_numFloorPlanes = 0;
 		int m_numCeilingPlanes = 0;
+		int m_numVerticallyOccluded = 0;
 
 		// spaces between walls with floors and ceilings
 		std::deque<Plane> m_floorPlanes;
@@ -177,7 +178,7 @@ namespace rtdoom
 			const float* ceilingHeight, const float* floorHeight, const std::string& ceilingTexture, const std::string& floorTexture, float lightLevel);
 
 		bool IsSpanVisible(int x, int sy, int ey) const;
-		bool IsHorizontallyOccluded() const;
+		bool IsOccluded() const;
 		bool IsVerticallyOccluded(int x) const;
 
 		Frame(const FrameBuffer& frameBuffer);

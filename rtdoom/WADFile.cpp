@@ -84,7 +84,17 @@ namespace rtdoom
 					const Lump& patchLump = lumps.at(i + j);
 					auto patchData = LoadLump(infile, patchLump);
 					auto p = LoadPatch(patchData);
-					m_sprites.insert(make_pair(Helpers::MakeString(patchLump.lumpName), p));
+					const auto& patchName = Helpers::MakeString(patchLump.lumpName);
+					if (patchName.length() == 8 && isdigit(patchName[5]) && isdigit(patchName[7]))
+					{
+						// split into two patches
+						m_sprites.insert(make_pair(patchName.substr(0, 6), p));
+						m_sprites.insert(make_pair(patchName.substr(0, 4) + patchName.substr(6, 2), FlipPatch(p)));
+					}
+					else
+					{
+						m_sprites.insert(make_pair(patchName, p));
+					}
 					j++;
 				}
 				break;
@@ -196,6 +206,24 @@ namespace rtdoom
 					p->pixels[(pj + rowstart) * p->width + c] = pixelColor;
 				}
 				memcpy(&dummy, patchData.data() + columnOffset++, sizeof(unsigned char));
+			}
+		}
+		return p;
+	}
+
+	std::shared_ptr<WADFile::Patch> WADFile::FlipPatch(const std::shared_ptr<WADFile::Patch>& patch)
+	{
+		auto p = std::make_shared<Patch>();
+		p->height = patch->height;
+		p->width = patch->width;
+		p->left = patch->width - patch->left - 1;
+		p->top = patch->top;
+		p->pixels = std::make_unique<unsigned char[]>(p->width * p->height);
+		for (int y = 0; y < patch->height; y++)
+		{
+			for (int x = 0; x < patch->width; x++)
+			{
+				p->pixels[p->width * y + x] = patch->pixels[patch->width * y + patch->width - 1 - x];
 			}
 		}
 		return p;
