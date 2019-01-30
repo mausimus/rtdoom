@@ -39,7 +39,7 @@ namespace rtdoom
 		}
 	}
 
-	void TexturePainter::PaintSprite(int x, int sy, std::vector<bool> occlusion, const Frame::PainterContext & textureContext) const
+	void TexturePainter::PaintSprite(int x, int sy, std::vector<bool> occlusion, const Frame::PainterContext& textureContext) const
 	{
 		auto it = m_wadFile.m_sprites.find(textureContext.textureName);
 		if (it == m_wadFile.m_sprites.end())

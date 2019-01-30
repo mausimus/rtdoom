@@ -119,9 +119,9 @@ namespace rtdoom
 		return visibleSpans;
 	}
 
-	bool Frame::IsHorizontallyOccluded() const
+	bool Frame::IsOccluded() const
 	{
-		return m_occlusion.size() == 1 && m_occlusion.begin()->s == 0 && m_occlusion.begin()->e == m_width;
+		return (m_occlusion.size() == 1 && m_occlusion.begin()->s == 0 && m_occlusion.begin()->e == m_width) || m_numVerticallyOccluded >= m_width;
 	}
 
 	bool Frame::IsVerticallyOccluded(int x) const
@@ -196,6 +196,11 @@ namespace rtdoom
 			{
 				m_floorClip[x] = floorProjection;
 			}
+		}
+
+		if (IsVerticallyOccluded(x))
+		{
+			m_numVerticallyOccluded++;
 		}
 
 		return span;

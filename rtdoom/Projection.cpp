@@ -44,11 +44,16 @@ namespace rtdoom
 		return normalOffset;
 	}
 
+	// absolute angle to a map point
+	Angle Projection::AbsoluteAngle(const Point& p) const
+	{
+		return MathCache::instance().ArcTan(p.y - m_player.y, p.x - m_player.x);
+	}
+
 	// relative projected view a for a map point
 	Angle Projection::ProjectionAngle(const Point& p) const
 	{
-		auto absoluteAngle = MathCache::instance().ArcTan(p.y - m_player.y, p.x - m_player.x);
-		return NormalizeAngle(absoluteAngle - m_player.a);
+		return NormalizeAngle(AbsoluteAngle(p) - m_player.a);
 	}
 
 	// projection d from player to the line specified by the normal vector at specific viewAngle
@@ -90,8 +95,7 @@ namespace rtdoom
 
 	Angle Projection::AngleDist(Angle a1, Angle a2) noexcept
 	{
-		auto diff = abs(NormalizeAngle(a2) - NormalizeAngle(a1));
-		return diff;
+		return abs(NormalizeAngle(a2) - NormalizeAngle(a1));
 	}
 
 	// normalize a to -PI..PI

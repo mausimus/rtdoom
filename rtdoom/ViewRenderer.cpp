@@ -64,8 +64,8 @@ namespace rtdoom
 			{
 				RenderMapSegment(*segment);
 
-				// stop drawing once the frame has been fully horizontally occluded with solid walls
-				if (m_frame->IsHorizontallyOccluded())
+				// stop drawing once the frame has been fully occluded with solid walls or vertical spans
+				if (m_frame->IsOccluded())
 				{
 					break;
 				}
@@ -94,7 +94,7 @@ namespace rtdoom
 			std::swap(vs.startAngle, vs.endAngle);
 		}
 
-		// clip the mapSegment against already drawn solid walls (horizontal occlusionMatrix)
+		// clip the mapSegment against already drawn solid walls (horizontal occlusion)
 		const auto visibleSpans = m_frame->ClipHorizontalSegment(vs.startX, vs.endX, segment.isSolid);
 		if (visibleSpans.empty())
 		{
@@ -150,7 +150,7 @@ namespace rtdoom
 			outerTexture.isEdge = x == visibleSegment.startX || x == visibleSegment.endX;
 			outerTexture.lightness = m_projection->Lightness(distance, &mapSegment) * frontSector.lightLevel;
 
-			// clip the column based on what we've already have drawn (vertical occlusionMatrix)
+			// clip the column based on what we've already have drawn (vertical occlusion)
 			const auto ceilingHeight = frontSector.isSky ? s_skyHeight : (frontSector.ceilingHeight - m_gameState.m_player.z);
 			const auto floorHeight = frontSector.floorHeight - m_gameState.m_player.z;
 			const auto& outerSpan = m_frame->ClipVerticalSegment(x, outerTopY, outerBottomY, mapSegment.isSolid, &ceilingHeight, &floorHeight,
@@ -266,7 +266,6 @@ namespace rtdoom
 			else if (sprite->IsWall())
 			{
 				RenderSpriteWall(dynamic_cast<Frame::SpriteWall* const>(sprite.get()));
-
 			}
 		}
 	}
@@ -274,9 +273,34 @@ namespace rtdoom
 	// render things
 	void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
 	{
-		const auto spritePatch = m_wadFile.m_sprites.find(thing->textureName);
+		std::string textureName(thing->textureName);
+		if (textureName.length() > 5 && textureName[5] == '1')
+		{
+			// check for angle frame
+			const auto angleDiff = Projection::NormalizeAngle(thing->a + PI - m_gameState.m_player.a) + 2 * PI;
+			const int frame = static_cast<int>((angleDiff + PI4 / 2.0f) / PI4) % 8;
+			textureName[5] = '1' + frame;
+			textureName[4] = 'A' + static_cast<int>(m_gameState.m_step * 2) % 4;
+		}
+		else if (textureName.length() > 4 && textureName[4] == 'A')
+		{
+			// check for animated frame
+			std::string alternateTexture(textureName);
+			alternateTexture[4] = 'A' + static_cast<int>(m_gameState.m_step * 2) % 2;
+			if (m_wadFile.m_sprites.find(alternateTexture) != m_wadFile.m_sprites.end())
+			{
+				textureName = alternateTexture;
+			}
+		}
+
 		const auto viewAngle = m_projection->ProjectionAngle(*thing);
-		if (thing->distance < s_minDistance || thing->textureName.empty() || spritePatch == m_wadFile.m_sprites.end() || viewAngle < -PI4 || viewAngle > PI4)
+		if (thing->distance < s_minDistance || textureName.empty() || viewAngle < -PI4 || viewAngle > PI4)
+		{
+			return;
+		}
+
+		const auto spritePatch = m_wadFile.m_sprites.find(textureName);
+		if (spritePatch == m_wadFile.m_sprites.end())
 		{
 			return;
 		}
@@ -295,14 +319,14 @@ namespace rtdoom
 		const auto spriteWidth = static_cast<int>(texture->width / scale);
 		const auto spriteHeight = static_cast<int>(texture->height / scale);
 		const auto startY = static_cast<int>(centerY - texture->top / scale);
-		auto startX = static_cast<int>(centerX - texture->left / scale);
+		const auto startX = static_cast<int>(centerX - texture->left / scale);
 
-		// clip spritePatch against already drawn walls
+		// clip sprite against already drawn walls
 		const auto& occlusionMatrix = ClipSprite(startX, startY, spriteWidth, spriteHeight, centerX, scale);
 
-		// draw spritePatch column by column
+		// draw sprite column by column
 		Frame::PainterContext spriteContext;
-		spriteContext.textureName = thing->textureName;
+		spriteContext.textureName = textureName;
 		spriteContext.yScale = scale;
 		spriteContext.lightness = m_gameState.m_mapDef->m_sectors[thing->sectorId].lightLevel * m_projection->Lightness(centerDistance);
 		for (int x = 0; x < spriteWidth; x++)
@@ -316,8 +340,8 @@ namespace rtdoom
 		}
 	}
 
-	// build spritePatch occlusionMatrix matrix
-	// our spritePatch spans from [startX, startX + spriteWidth] and [startY, startY + spriteHeight]
+	// build sprite occlusion matrix
+	// our sprite spans from [startX, startX + spriteWidth] and [startY, startY + spriteHeight]
 	std::vector<std::vector<bool>> ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, int centerX, float spriteScale) const
 	{
 		std::vector<std::vector<bool>> occlusion(spriteWidth);
@@ -327,10 +351,10 @@ namespace rtdoom
 		}
 		for (const auto& clip : m_frame->m_clips)
 		{
-			// for every clip that's in front of the spritePatch and overlaps it, add it to occlusionMatrix matrix
+			// for every clip that's in front of the sprite and overlaps it, add it to occlusion matrix
 			if ((clip.yScaleStart < spriteScale || clip.yScaleEnd < spriteScale) && clip.xSpan.s < startX + spriteWidth && clip.xSpan.e > startX)
 			{
-				// extra check if is spritePatch is alongside the clip via spriteScale interpolation
+				// extra check if is sprite is alongside the clip via spriteScale interpolation
 				if (clip.yScaleStart > spriteScale || clip.yScaleEnd > spriteScale)
 				{
 					const auto yScaleOnSprite = clip.yScaleStart + (centerX - clip.xSpan.s) * (clip.yScaleEnd - clip.yScaleStart) / (clip.xSpan.e - clip.xSpan.s);

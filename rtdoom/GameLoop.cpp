@@ -63,7 +63,6 @@ namespace rtdoom
 	void GameLoop::StepFrame()
 	{
 		m_stepFrame = !m_stepFrame;
-		//		m_viewRenderer.StepFrame();
 	}
 
 	void GameLoop::Tick(float seconds)
