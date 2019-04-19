@@ -3,12 +3,7 @@
 
 namespace rtdoom
 {
-	Painter::Painter(FrameBuffer& frameBuffer) :
-		m_frameBuffer(frameBuffer)
-	{
-	}
+Painter::Painter(FrameBuffer& frameBuffer) : m_frameBuffer(frameBuffer) {}
 
-	Painter::~Painter()
-	{
-	}
-}
+Painter::~Painter() {}
+} // namespace rtdoom

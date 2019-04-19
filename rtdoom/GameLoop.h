@@ -11,40 +11,46 @@
 
 namespace rtdoom
 {
-	class GameLoop
-	{
-	protected:
-		GameState m_gameState;
-		ViewRenderer m_viewRenderer;
-		Viewport m_playerViewport;
-		MapRenderer m_mapRenderer;
-		Viewport m_mapViewport;
-		bool m_isRunning;
-		bool m_stepFrame;
-		int m_moveDirection;
-		int m_rotateDirection;
+class GameLoop
+{
+protected:
+    GameState    m_gameState;
+    ViewRenderer m_viewRenderer;
+    Viewport     m_playerViewport;
+    MapRenderer  m_mapRenderer;
+    Viewport     m_mapViewport;
+    bool         m_isRunning;
+    bool         m_stepFrame;
+    int          m_moveDirection;
+    int          m_rotateDirection;
 
-		constexpr int ViewScale(int windowSize) const;
-		constexpr int MapScale(int windowSize) const;
+    constexpr int ViewScale(int windowSize) const;
+    constexpr int MapScale(int windowSize) const;
 
-	public:
-		void Start(const MapStore& mapStore);
-		void Stop();
-		bool isRunning() const { return m_isRunning; }
+public:
+    void Start(const MapStore& mapStore);
+    void Stop();
+    bool isRunning() const
+    {
+        return m_isRunning;
+    }
 
-		void Move(int moveDirection);
-		void Rotate(int rotateDirection);
+    void Move(int moveDirection);
+    void Rotate(int rotateDirection);
 
-		const Frame* RenderFrame();
-		void ClipPlayer();
-		void StepFrame();
-		void Tick(float seconds);
-		void ResizeWindow(int width, int height);
-		void SetRenderingMode(ViewRenderer::RenderingMode renderingMode);
+    const Frame* RenderFrame();
+    void         ClipPlayer();
+    void         StepFrame();
+    void         Tick(float seconds);
+    void         ResizeWindow(int width, int height);
+    void         SetRenderingMode(ViewRenderer::RenderingMode renderingMode);
 
-		const Thing& Player() const { return m_gameState.m_player; }
+    const Thing& Player() const
+    {
+        return m_gameState.m_player;
+    }
 
-		GameLoop(SDL_Renderer* sdlRenderer, const WADFile& wadFile);
-		~GameLoop();
-	};
-}
+    GameLoop(SDL_Renderer* sdlRenderer, const WADFile& wadFile);
+    ~GameLoop();
+};
+} // namespace rtdoom
