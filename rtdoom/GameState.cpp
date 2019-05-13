@@ -20,9 +20,9 @@ void GameState::Move(int m, int r, float step)
 {
     m_step += step;
 
-    m_player.a += step * 25 * -0.15f * r;
-    m_player.x += step * 25 * 10.0f * m * cos(m_player.a);
-    m_player.y += step * 25 * 10.0f * m * sin(m_player.a);
+    m_player.a += step * 16 * -0.15f * r;
+    m_player.x += step * 32 * 10.0f * m * cos(m_player.a);
+    m_player.y += step * 32 * 10.0f * m * sin(m_player.a);
 
     m_player.a = Projection::NormalizeAngle(m_player.a);
 }

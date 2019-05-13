@@ -17,5 +17,6 @@
 #include <filesystem>
 #include <optional>
 #include <unordered_set>
+#include <functional>
 
 #endif //PCH_H
