@@ -72,7 +72,7 @@ public:
     // silhouette of a drawn wall
     struct Clip
     {
-        Clip(Span xSpan) : xSpan {xSpan}, topClips(), bottomClips(), texelXs() {}
+        Clip(Span xSpan) : xSpan {xSpan}, topClips(), bottomClips(), texelXs(), yScales() {}
 
         void Add(int x, const PainterContext& painterContext, int topClip, int bottomClip)
         {
@@ -87,6 +87,7 @@ public:
             topClips.push_back(topClip);
             bottomClips.push_back(bottomClip);
             texelXs.push_back(static_cast<int>(painterContext.texelX));
+            yScales.push_back(painterContext.yScale);
         }
 
         Span xSpan;
@@ -97,6 +98,7 @@ public:
         std::vector<int> topClips;
         std::vector<int> bottomClips;
         std::vector<int> texelXs;
+        std::vector<float> yScales;
     };
 
     // overlay sprite drawn in last phase
