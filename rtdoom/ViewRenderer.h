@@ -45,7 +45,7 @@ protected:
     void RenderSpriteWall(Frame::SpriteWall* const wall) const;
 
     std::vector<std::vector<bool>>
-          ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, int centerX, float spriteScale) const;
+          ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, float spriteScale) const;
     Angle GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
 
     FrameBuffer*                m_frameBuffer;

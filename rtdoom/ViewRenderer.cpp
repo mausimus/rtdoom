@@ -332,7 +332,7 @@ void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
     const auto  startX       = static_cast<int>(centerX - texture->left / scale);
 
     // clip sprite against already drawn walls
-    const auto& occlusionMatrix = ClipSprite(startX, startY, spriteWidth, spriteHeight, centerX, scale);
+    const auto& occlusionMatrix = ClipSprite(startX, startY, spriteWidth, spriteHeight, scale);
 
     // draw sprite column by column
     Frame::PainterContext spriteContext;
@@ -353,7 +353,7 @@ void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
 // build sprite occlusion matrix
 // our sprite spans from [startX, startX + spriteWidth] and [startY, startY + spriteHeight]
 std::vector<std::vector<bool>>
-ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, int centerX, float spriteScale) const
+ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, float spriteScale) const
 {
     std::vector<std::vector<bool>> occlusion(spriteWidth);
     for(auto& o : occlusion)
@@ -365,16 +365,6 @@ ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeig
         // for every clip that's in front of the sprite and overlaps it, add it to occlusion matrix
         if((clip.yScaleStart < spriteScale || clip.yScaleEnd < spriteScale) && clip.xSpan.s < startX + spriteWidth && clip.xSpan.e > startX)
         {
-            // extra check if is sprite is alongside the clip via spriteScale interpolation
-            if(clip.yScaleStart > spriteScale || clip.yScaleEnd > spriteScale)
-            {
-                const auto yScaleOnSprite =
-                    clip.yScaleStart + (centerX - clip.xSpan.s) * (clip.yScaleEnd - clip.yScaleStart) / (clip.xSpan.e - clip.xSpan.s);
-                if(yScaleOnSprite > spriteScale)
-                {
-                    continue;
-                }
-            }
             for(auto x = startX; x < startX + spriteWidth; x++)
             {
                 if(x < clip.xSpan.s || x > clip.xSpan.e)
@@ -384,7 +374,7 @@ ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeig
                 const auto clipX = x - clip.xSpan.s;
                 for(auto y = startY; y < startY + spriteHeight; y++)
                 {
-                    if(y >= clip.topClips[clipX] && y <= clip.bottomClips[clipX])
+                    if(y >= clip.topClips[clipX] && y <= clip.bottomClips[clipX] && clip.yScales[clipX] < spriteScale)
                     {
                         occlusion[x - startX][y - startY] = true;
                     }
