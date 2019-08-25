@@ -123,8 +123,8 @@ void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSe
     {
         // calculate the relative viewAngle and distance to the mapSegment from our viewpoint
         auto viewAngle = GetViewAngle(x, visibleSegment);
-        auto distance  = m_projection->Distance(visibleSegment.normalVector, viewAngle);
-        if(distance < s_minDistance)
+        auto projectionDistance  = m_projection->Distance(visibleSegment.normalVector, viewAngle);
+        if(projectionDistance < s_minDistance)
         {
             lowerClip.Add(x, Frame::PainterContext(), 0, 0);
             middleClip.Add(x, Frame::PainterContext(), 0, 0);
@@ -133,11 +133,11 @@ void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSe
         }
 
         // calculate on-screen vertical start and end positions for the column, based on the front (outer) side
-        const auto outerTopY    = m_projection->ViewY(distance, frontSector.ceilingHeight - m_gameState.m_player.z);
-        const auto outerBottomY = m_projection->ViewY(distance, frontSector.floorHeight - m_gameState.m_player.z);
+        const auto outerTopY    = m_projection->ViewY(projectionDistance, frontSector.ceilingHeight - m_gameState.m_player.z);
+        const auto outerBottomY = m_projection->ViewY(projectionDistance, frontSector.floorHeight - m_gameState.m_player.z);
 
         Frame::PainterContext outerTexture;
-        outerTexture.yScale      = m_projection->TextureScale(distance);
+        outerTexture.yScale      = m_projection->TextureScale(projectionDistance);
         outerTexture.yPegging    = mapSegment.lowerUnpegged ? outerBottomY : outerTopY;
         outerTexture.textureName = mapSegment.frontSide.middleTexture;
         outerTexture.yOffset     = mapSegment.frontSide.yOffset;
@@ -145,7 +145,7 @@ void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSe
         outerTexture.texelX = visibleSegment.normalOffset + m_projection->Offset(visibleSegment.normalVector, viewAngle) +
                               mapSegment.xOffset + mapSegment.frontSide.xOffset;
         outerTexture.isEdge    = x == visibleSegment.startX || x == visibleSegment.endX;
-        outerTexture.lightness = m_projection->Lightness(distance, &mapSegment) * frontSector.lightLevel;
+        outerTexture.lightness = m_projection->Lightness(projectionDistance, &mapSegment) * frontSector.lightLevel;
 
         // clip the column based on what we've already have drawn (vertical occlusion)
         const auto  ceilingHeight = frontSector.isSky ? s_skyHeight : (frontSector.ceilingHeight - m_gameState.m_player.z);
@@ -174,8 +174,8 @@ void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSe
             const auto& backSector = mapSegment.backSide.sector;
 
             // recalculate column size for the back side
-            const auto innerTopY    = m_projection->ViewY(distance, backSector.ceilingHeight - m_gameState.m_player.z);
-            const auto innerBottomY = m_projection->ViewY(distance, backSector.floorHeight - m_gameState.m_player.z);
+            const auto innerTopY    = m_projection->ViewY(projectionDistance, backSector.ceilingHeight - m_gameState.m_player.z);
+            const auto innerBottomY = m_projection->ViewY(projectionDistance, backSector.floorHeight - m_gameState.m_player.z);
 
             // segments that connect open sky sectors should not have their top sections drawn
             const auto isSky = frontSector.isSky && backSector.isSky;
@@ -215,7 +215,7 @@ void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSe
                 // if there's a middle texture paint it as sprite (could be semi-transparent)
                 if(outerTexture.textureName != "-")
                 {
-                    m_frame->m_sprites.push_back(std::make_unique<Frame::SpriteWall>(x, innerSpan, outerTexture, distance));
+                    m_frame->m_sprites.push_back(std::make_unique<Frame::SpriteWall>(x, innerSpan, outerTexture, projectionDistance));
                 }
             }
         }
@@ -257,7 +257,9 @@ void ViewRenderer::RenderSprites() const
         {
             for(const auto t : m_gameState.m_mapDef->m_things[s])
             {
-                m_frame->m_sprites.push_back(std::make_unique<Frame::SpriteThing>(t, Projection::Distance(t, m_gameState.m_player)));
+                const auto viewAngle = m_projection->ProjectionAngle(t);
+                const auto projectionDistance = Projection::Distance(t, m_gameState.m_player) * MathCache::instance().Cos(viewAngle);
+                m_frame->m_sprites.push_back(std::make_unique<Frame::SpriteThing>(t, projectionDistance));
             }
         }
     }
@@ -315,8 +317,7 @@ void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
         return;
     }
 
-    const auto centerDistance = thing->distance * MathCache::instance().Cos(viewAngle);
-    const auto scale          = m_projection->TextureScale(centerDistance);
+    const auto scale          = m_projection->TextureScale(thing->distance);
     if(scale < s_minScale)
     {
         return;
@@ -324,7 +325,7 @@ void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
 
     const auto  midDistance  = MathCache::instance().Tan(viewAngle) / PI4;
     const auto  centerX      = static_cast<int>((m_frameBuffer->m_width / 2) * (1 + midDistance));
-    const auto  centerY      = m_projection->ViewY(centerDistance, thing->z - m_gameState.m_player.z);
+    const auto  centerY      = m_projection->ViewY(thing->distance, thing->z - m_gameState.m_player.z);
     const auto& texture      = spritePatch->second;
     const auto  spriteWidth  = static_cast<int>(texture->width / scale);
     const auto  spriteHeight = static_cast<int>(texture->height / scale);
@@ -338,7 +339,7 @@ void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
     Frame::PainterContext spriteContext;
     spriteContext.textureName = textureName;
     spriteContext.yScale      = scale;
-    spriteContext.lightness   = m_gameState.m_mapDef->m_sectors[thing->sectorId].lightLevel * m_projection->Lightness(centerDistance);
+    spriteContext.lightness   = m_gameState.m_mapDef->m_sectors[thing->sectorId].lightLevel * m_projection->Lightness(thing->distance);
     for(int x = 0; x < spriteWidth; x++)
     {
         const auto screenX = startX + x;
