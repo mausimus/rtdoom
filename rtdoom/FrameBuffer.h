@@ -23,7 +23,7 @@ public:
     virtual void HorizontalLine(int sx, int y, const std::vector<int>& texels, float lightness) noexcept                     = 0;
     virtual void HorizontalLine(int sx, int ex, int y, int colorIndex, float lightness) noexcept                             = 0;
 
-    static float Gamma(float lightness);
+    static unsigned char Gamma(float lightness);
 
     virtual ~FrameBuffer();
 };

@@ -25,6 +25,7 @@ protected:
     Pixel32* m_pixels {nullptr};
 
     const std::array<uint32_t, 6> s_colors {0x00ff000, 0x0000ff00, 0x000000ff, 0x00ff00ff, 0x0000ffff, 0x003f7f0f};
+    unsigned char *c_lightMap[256];
 
 public:
     virtual void Attach(void* pixels, std::function<void()> stepCallback) override;
