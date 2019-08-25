@@ -156,11 +156,16 @@ void DestroySDL(SDL_Renderer* sdlRenderer, SDL_Window* sdlWindow)
     SDL_Quit();
 }
 
+bool iequals(const string& a, const string& b)
+{
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(), [](char a, char b) { return tolower(a) == tolower(b); });
+}
+
 std::optional<std::string> FindWAD()
 {
     for(const auto& entry : std::filesystem::directory_iterator("."))
     {
-        if(entry.is_regular_file() && entry.path().extension() == ".wad")
+        if(entry.is_regular_file() && iequals(entry.path().extension().string(), ".wad"))
         {
             return entry.path().generic_string();
         }
