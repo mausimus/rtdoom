@@ -36,11 +36,6 @@ struct Thing : Location
     int         sectorId;
     int         type;
     std::string textureName;
-    /*
-		bool operator < (const Thing& str) const
-		{
-			return (distance > str.distance);
-		}*/
 };
 
 struct Line
