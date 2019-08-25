@@ -24,7 +24,7 @@ Implementation of a Doom-style graphics engine in C++ 17
 
 ###### Step frame mode
 
-![screenshot](images/screen4.png)
+![screenshot](images/screen4.gif)
 
 ### Goal
 
