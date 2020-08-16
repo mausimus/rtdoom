@@ -4,12 +4,12 @@
 namespace rtdoom
 {
 GameLoop::GameLoop(SDL_Renderer* sdlRenderer, const WADFile& wadFile) :
-    m_gameState {}, m_moveDirection {0}, m_rotateDirection {0}, m_isRunning {false}, m_stepFrame {false}, m_viewRenderer {m_gameState,
-                                                                                                                          wadFile},
+    m_gameState {}, m_moveDirection {0}, m_rotateDirection {0}, m_isRunning {false}, m_stepFrame {false},
+    m_viewRenderer {m_gameState, wadFile}, m_glRenderer {m_gameState, wadFile},
     m_playerViewport {sdlRenderer, m_viewRenderer, ViewScale(s_displayX), ViewScale(s_displayY), wadFile.m_palette, true},
     m_mapRenderer {m_gameState}, m_mapViewport {
                                      sdlRenderer, m_mapRenderer, MapScale(s_displayX), MapScale(s_displayY), wadFile.m_palette, false}
-{}
+{ }
 
 constexpr int GameLoop::ViewScale(int windowSize) const
 {
@@ -32,7 +32,7 @@ void GameLoop::Rotate(int rotateDirection)
 }
 
 const Frame* GameLoop::RenderFrame()
-{
+{ /*
     if(m_stepFrame)
     {
         m_playerViewport.DrawSteps();
@@ -43,7 +43,9 @@ const Frame* GameLoop::RenderFrame()
         m_playerViewport.Draw();
         m_mapViewport.Draw();
     }
-    return m_viewRenderer.GetLastFrame();
+    */m_glRenderer.RenderFrame();
+    return NULL;
+    //m_viewRenderer.GetLastFrame();
 }
 
 void GameLoop::ClipPlayer()
@@ -89,5 +91,5 @@ void GameLoop::Stop()
     m_isRunning = false;
 }
 
-GameLoop::~GameLoop() {}
+GameLoop::~GameLoop() { }
 } // namespace rtdoom

@@ -114,10 +114,10 @@ int main(int /*argc*/, char** /*argv*/)
             const auto seconds     = (nextCounter - tickCounter) / static_cast<float>(tickFrequency);
             tickCounter            = nextCounter;
             gameLoop.Tick(seconds);
-
+            /*
             cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " << frame->m_numFloorPlanes << "+"
                  << frame->m_numCeilingPlanes << " planes, " << frame->m_sprites.size() << " sprites" << endl;
-        }
+        */}
 
         DestroySDL(sdlRenderer, sdlWindow);
     }

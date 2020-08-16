@@ -12,6 +12,19 @@ struct Point
 
     float x;
     float y;
+
+    bool operator<(const Point& p) const
+    {
+        if(x == p.x)
+        {
+            return y < p.y;        
+        }
+        return x < p.x;
+    }
+
+    bool operator==(Point& p) {
+        return x == p.x && y == p.y;
+    }
 };
 
 struct Vertex : Point

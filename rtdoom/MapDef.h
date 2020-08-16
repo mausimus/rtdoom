@@ -8,8 +8,7 @@ namespace rtdoom
 class MapDef
 {
 protected:
-    MapStore                              m_store;
-    std::vector<std::shared_ptr<Segment>> m_segments;
+    MapStore m_store;
 
     static bool IsInFrontOf(const Point& pov, const MapStore::Node& node) noexcept;
     static bool IsInFrontOf(const Point& pov, const MapStore::Vertex& sv, const MapStore::Vertex& ev) noexcept;
@@ -25,10 +24,11 @@ protected:
     void BuildThings();
 
 public:
-    static bool                     IsInFrontOf(const Point& pov, const Line& line) noexcept;
-    std::vector<Line>               m_wireframe;
-    std::vector<Sector>             m_sectors;
-    std::vector<std::vector<Thing>> m_things;
+    static bool                           IsInFrontOf(const Point& pov, const Line& line) noexcept;
+    std::vector<Line>                     m_wireframe;
+    std::vector<Sector>                   m_sectors;
+    std::vector<std::vector<Thing>>       m_things;
+    std::vector<std::shared_ptr<Segment>> m_segments;
 
     Thing                                GetStartingPosition() const;
     std::optional<Sector>                GetSector(const Point& pov) const;
