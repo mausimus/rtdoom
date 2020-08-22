@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "rtdoom.h"
-#include "ViewRenderer.h"
+#include "SoftwareRenderer.h"
 #include "MathCache.h"
 #include "WireframePainter.h"
 #include "SolidPainter.h"
@@ -8,12 +8,12 @@
 
 namespace rtdoom
 {
-ViewRenderer::ViewRenderer(const GameState& gameState, const WADFile& wadFile) :
+SoftwareRenderer::SoftwareRenderer(const GameState& gameState, const WADFile& wadFile) :
     Renderer {gameState}, m_wadFile {wadFile}, m_renderingMode {RenderingMode::Textured}
 {}
 
 // entry method for rendering a frame
-void ViewRenderer::RenderFrame(FrameBuffer& frameBuffer)
+void SoftwareRenderer::RenderFrame(FrameBuffer& frameBuffer)
 {
     Initialize(frameBuffer);
 
@@ -30,7 +30,7 @@ void ViewRenderer::RenderFrame(FrameBuffer& frameBuffer)
     RenderOverlay();
 }
 
-void ViewRenderer::Initialize(FrameBuffer& frameBuffer)
+void SoftwareRenderer::Initialize(FrameBuffer& frameBuffer)
 {
     m_frameBuffer = &frameBuffer;
     m_projection  = std::make_unique<Projection>(m_gameState.m_player, frameBuffer);
@@ -51,7 +51,7 @@ void ViewRenderer::Initialize(FrameBuffer& frameBuffer)
     }
 }
 
-void ViewRenderer::RenderSegments() const
+void SoftwareRenderer::RenderSegments() const
 {
     // iterate through all segments (map lines) in visibility order returned by traversing the map's BSP tree
     for(const auto& segment : m_gameState.m_mapDef->GetSegmentsToDraw(m_gameState.m_player))
@@ -70,8 +70,13 @@ void ViewRenderer::RenderSegments() const
     }
 }
 
-void ViewRenderer::RenderMapSegment(const Segment& segment) const
+void SoftwareRenderer::RenderMapSegment(const Segment& segment) const
 {
+    if(segment.frontSide.sideless || segment.backSide.sideless)
+    {
+        return;
+    }
+
     VisibleSegment vs {segment};
 
     // calculate relative view angles of the mapSegment and skip rendering if they are not within the field of view
@@ -112,7 +117,7 @@ void ViewRenderer::RenderMapSegment(const Segment& segment) const
 }
 
 // draw a visible span of a mapSegment on the frame buffer
-void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const
+void SoftwareRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegment& visibleSegment) const
 {
     const auto& mapSegment  = visibleSegment.mapSegment;
     const auto& frontSector = mapSegment.frontSide.sector;
@@ -233,7 +238,7 @@ void ViewRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSe
 }
 
 // render floors and ceilings based on data collected during drawing walls
-void ViewRenderer::RenderPlanes() const
+void SoftwareRenderer::RenderPlanes() const
 {
     for(const auto& floorPlane : m_frame->m_floorPlanes)
     {
@@ -248,7 +253,7 @@ void ViewRenderer::RenderPlanes() const
 }
 
 // render sprites (things or semi-transparent walls)
-void ViewRenderer::RenderSprites() const
+void SoftwareRenderer::RenderSprites() const
 {
     // add things in visited sectors to list of sprites
     for(const auto s : m_frame->m_sectors)
@@ -283,7 +288,7 @@ void ViewRenderer::RenderSprites() const
 }
 
 // render things
-void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
+void SoftwareRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
 {
     std::string textureName(thing->textureName);
     if(textureName.length() > 5 && textureName[5] == '1')
@@ -354,7 +359,7 @@ void ViewRenderer::RenderSpriteThing(Frame::SpriteThing* const thing) const
 // build sprite occlusion matrix
 // our sprite spans from [startX, startX + spriteWidth] and [startY, startY + spriteHeight]
 std::vector<std::vector<bool>>
-ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, float spriteScale) const
+SoftwareRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, float spriteScale) const
 {
     std::vector<std::vector<bool>> occlusion(spriteWidth);
     for(auto& o : occlusion)
@@ -387,18 +392,18 @@ ViewRenderer::ClipSprite(int startX, int startY, int spriteWidth, int spriteHeig
 }
 
 // render semi-transparent walls
-void ViewRenderer::RenderSpriteWall(Frame::SpriteWall* const wall) const
+void SoftwareRenderer::RenderSpriteWall(Frame::SpriteWall* const wall) const
 {
     m_painter->PaintWall(wall->x, wall->span, wall->textureContext);
 }
 
-void ViewRenderer::RenderOverlay() const
+void SoftwareRenderer::RenderOverlay() const
 {
     // TODO: render HUD etc.
 }
 
 // return the view viewAngle for vertical screen column
-Angle ViewRenderer::GetViewAngle(int x, const VisibleSegment& visibleSegment) const
+Angle SoftwareRenderer::GetViewAngle(int x, const VisibleSegment& visibleSegment) const
 {
     auto viewAngle = m_projection->ViewAngle(x);
 
@@ -414,15 +419,15 @@ Angle ViewRenderer::GetViewAngle(int x, const VisibleSegment& visibleSegment) co
     return viewAngle;
 }
 
-void ViewRenderer::SetMode(RenderingMode renderingMode)
+void SoftwareRenderer::SetMode(RenderingMode renderingMode)
 {
     m_renderingMode = renderingMode;
 }
 
-Frame* ViewRenderer::GetLastFrame() const
+Frame* SoftwareRenderer::GetLastFrame() const
 {
     return m_frame.get();
 }
 
-ViewRenderer::~ViewRenderer() {}
+SoftwareRenderer::~SoftwareRenderer() {}
 } // namespace rtdoom

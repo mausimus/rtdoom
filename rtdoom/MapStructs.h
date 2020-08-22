@@ -86,10 +86,13 @@ struct Side
          const std::string upperTexture,
          int               xOffset,
          int               yOffset) :
-        sector {sector},
+        sideless(false), sector {sector},
         lowerTexture {lowerTexture}, middleTexture {middleTexture}, upperTexture {upperTexture}, xOffset {xOffset}, yOffset {yOffset}
     {}
 
+    Side() : sideless(true) { }
+
+    bool        sideless;
     Sector      sector;
     int         xOffset;
     int         yOffset;
@@ -115,6 +118,14 @@ struct Segment : Line
 
     bool isHorizontal = s.y == e.y;
     bool isVertical   = s.x == e.x;
+};
+
+struct SubSector
+{
+    SubSector(int sectorId, std::vector<std::shared_ptr<Segment>> segments) : sectorId {sectorId}, segments(segments) { }
+
+    int                                   sectorId;
+    std::vector<std::shared_ptr<Segment>> segments;
 };
 
 struct Vector

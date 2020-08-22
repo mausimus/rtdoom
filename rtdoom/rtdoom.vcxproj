@@ -85,7 +85,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
@@ -169,7 +169,7 @@
     <ClInclude Include="GameState.h" />
     <ClInclude Include="glad\glad.h" />
     <ClInclude Include="glad\KHR\khrplatform.h" />
-    <ClInclude Include="GLRenderer.h" />
+    <ClInclude Include="OpenGLRenderer.h" />
     <ClInclude Include="MapDef.h" />
     <ClInclude Include="MapRenderer.h" />
     <ClInclude Include="MapStore.h" />
@@ -177,13 +177,6 @@
     <ClInclude Include="MathCache.h" />
     <ClInclude Include="Painter.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="poly2tri\common\shapes.h" />
-    <ClInclude Include="poly2tri\common\utils.h" />
-    <ClInclude Include="poly2tri\poly2tri.h" />
-    <ClInclude Include="poly2tri\sweep\advancing_front.h" />
-    <ClInclude Include="poly2tri\sweep\cdt.h" />
-    <ClInclude Include="poly2tri\sweep\sweep.h" />
-    <ClInclude Include="poly2tri\sweep\sweep_context.h" />
     <ClInclude Include="Projection.h" />
     <ClInclude Include="rtdoom.h" />
     <ClInclude Include="Renderer.h" />
@@ -191,7 +184,7 @@
     <ClInclude Include="TexturePainter.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Viewport.h" />
-    <ClInclude Include="ViewRenderer.h" />
+    <ClInclude Include="SoftwareRenderer.h" />
     <ClInclude Include="WADFile.h" />
     <ClInclude Include="WireframePainter.h" />
   </ItemGroup>
@@ -202,7 +195,7 @@
     <ClCompile Include="GameLoop.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="glad\glad.cpp" />
-    <ClCompile Include="GLRenderer.cpp" />
+    <ClCompile Include="OpenGLRenderer.cpp" />
     <ClCompile Include="MapDef.cpp" />
     <ClCompile Include="MapRenderer.cpp" />
     <ClCompile Include="MapStore.cpp" />
@@ -215,18 +208,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="poly2tri\common\shapes.cc" />
-    <ClCompile Include="poly2tri\sweep\advancing_front.cc" />
-    <ClCompile Include="poly2tri\sweep\cdt.cc" />
-    <ClCompile Include="poly2tri\sweep\sweep.cc" />
-    <ClCompile Include="poly2tri\sweep\sweep_context.cc" />
     <ClCompile Include="Projection.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SolidPainter.cpp" />
     <ClCompile Include="TexturePainter.cpp" />
     <ClCompile Include="Helpers.cpp" />
     <ClCompile Include="Viewport.cpp" />
-    <ClCompile Include="ViewRenderer.cpp" />
+    <ClCompile Include="SoftwareRenderer.cpp" />
     <ClCompile Include="WADFile.cpp" />
     <ClCompile Include="WireframePainter.cpp" />
   </ItemGroup>

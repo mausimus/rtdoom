@@ -23,9 +23,9 @@ public:
     }
 
     template <typename T>
-    static std::vector<T> LoadEntities(const std::vector<char>& data)
+    static std::vector<T> LoadEntities(const std::vector<char>& data, int skip = 0)
     {
-        size_t         dataIndex = 0;
+        size_t         dataIndex = skip;
         std::vector<T> items;
         T              v;
         while(dataIndex < data.size())

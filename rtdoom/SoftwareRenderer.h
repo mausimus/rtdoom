@@ -8,16 +8,8 @@
 
 namespace rtdoom
 {
-class ViewRenderer : public Renderer
+class SoftwareRenderer : public Renderer
 {
-public:
-    enum class RenderingMode
-    {
-        Wireframe,
-        Solid,
-        Textured
-    };
-
 protected:
     struct VisibleSegment
     {
@@ -56,8 +48,8 @@ protected:
     RenderingMode               m_renderingMode;
 
 public:
-    ViewRenderer(const GameState& gameState, const WADFile& wadFile);
-    ~ViewRenderer();
+    SoftwareRenderer(const GameState& gameState, const WADFile& wadFile);
+    ~SoftwareRenderer();
 
     virtual void RenderFrame(FrameBuffer& frameBuffer) override;
     Frame*       GetLastFrame() const;

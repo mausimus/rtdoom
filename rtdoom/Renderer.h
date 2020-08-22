@@ -15,6 +15,14 @@ protected:
     void DrawLine(int sx, int sy, int dx, int dy, int color, float lightness, FrameBuffer& frameBuffer) const;
 
 public:
+    enum class RenderingMode
+    {
+        Wireframe,
+        Solid,
+        Textured,
+        OpenGL
+    };
+
     Renderer(const GameState& gameState);
     virtual ~Renderer();
 

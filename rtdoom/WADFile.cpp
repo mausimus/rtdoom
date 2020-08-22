@@ -165,8 +165,59 @@ WADFile::WADFile(const std::string& fileName)
         break;
         }
     }
+
+    TryLoadGWA(fileName);
 }
 
+void WADFile::TryLoadGWA(const std::string& fileName)
+{
+    std::string glName(fileName);
+    glName.replace(glName.find_last_of('.'), glName.length(), ".gwa");
+
+    std::ifstream infile(glName, std::ios::binary);
+    if(!infile.good())
+    {
+        return;
+    }
+
+    Header header;
+    infile.read(reinterpret_cast<char*>(&header), sizeof(header));
+    infile.clear();
+    infile.seekg(header.dirLocation);
+
+    std::vector<Lump> lumps;
+    for(auto i = 0; i < header.numEntries; i++)
+    {
+        Lump lump;
+        infile.read(reinterpret_cast<char*>(&lump), sizeof(lump));
+        lumps.push_back(lump);
+    }
+
+    // find and load maps and patches
+    for(size_t i = 0; i < lumps.size(); i++)
+    {
+        const Lump& lump = lumps.at(i);
+        switch(GetLumpType(lump))
+        {
+        case LumpType::MapMarker: {
+            std::map<std::string, std::vector<char>> mapLumps;
+            for(auto j = 1; j <= 4; j++)
+            {
+                std::string lumpName = Helpers::MakeString(lumps[i + j].lumpName);
+                mapLumps.insert(make_pair(lumpName, LoadLump(infile, lumps[i + j])));
+            }
+            i += 4;
+            const std::string mapName(lump.lumpName + 3);
+            auto map = m_maps.find(mapName);
+            if(map != m_maps.end())
+            {
+                map->second.LoadGL(mapLumps);
+            }
+            break;
+        }
+        }
+    }
+}
 std::shared_ptr<WADFile::Patch> WADFile::LoadPatch(const std::vector<char>& patchData)
 {
     auto p = std::make_shared<Patch>();
@@ -266,6 +317,10 @@ WADFile::LumpType WADFile::GetLumpType(const Lump& lump) const
         }
         return LumpType::Unknown;
     }
+    if(lump.lumpName[0] == 'G' && lump.lumpName[1] == 'L')
+    {
+        return LumpType::MapMarker;
+    }
     if(strncmp(lump.lumpName, "PLAYPAL", 7) == 0)
     {
         return LumpType::Palette;
@@ -314,7 +369,7 @@ std::vector<char> WADFile::LoadLump(std::ifstream& infile, const Lump& lump)
     return data;
 }
 
-WADFile::~WADFile() {}
+WADFile::~WADFile() { }
 
 const std::map<int, std::string> WADFile::m_thingTypes {
     {2023, "PSTRA0"}, {2026, "PMAPA0"}, {2014, "BON1A0"}, {2024, "PINSA0"}, {2022, "PINVA0"}, {2045, "PVISA0"}, {83, "MEGAA0"},

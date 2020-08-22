@@ -1,5 +1,6 @@
 #pragma once
 
+#include <SDL.h>
 #include "Renderer.h"
 #include "WADFile.h"
 #include "Projection.h"
@@ -8,7 +9,7 @@
 
 namespace rtdoom
 {
-class GLRenderer : public Renderer
+class OpenGLRenderer : public Renderer
 {
 protected:
     void Initialize();
@@ -24,11 +25,15 @@ protected:
     void RenderMapSegment(const Segment& segment) const;
 
     const WADFile& m_wadFile;
+    SDL_Window* m_window;
+    int            m_renderW, m_renderH;
 
 public:
-    GLRenderer(const GameState& gameState, const WADFile& wadFile);
-    ~GLRenderer();
+    OpenGLRenderer(const GameState& gameState, const WADFile& wadFile, SDL_Window* window, int renderW, int renderH);
+    void Resize(int w, int h);
+    ~OpenGLRenderer();
 
+    void         Reset();
     virtual void RenderFrame();
     virtual void RenderFrame(FrameBuffer& frameBuffer) override;
 };

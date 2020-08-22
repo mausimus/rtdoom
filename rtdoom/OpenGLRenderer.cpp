@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "rtdoom.h"
-#include "GLRenderer.h"
+#include "OpenGLRenderer.h"
 #include "MathCache.h"
 #include "WireframePainter.h"
 #include "SolidPainter.h"
@@ -11,7 +11,6 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
-#include "poly2tri/poly2tri.h"
 
 namespace rtdoom
 {
@@ -56,17 +55,19 @@ struct TextureUnit
     std::vector<std::shared_ptr<rtdoom::Texture>> textures;
 };
 
-int                                             shaderProgram, vertexShader, fragmentShader;
+int shaderProgram, vertexShader, fragmentShader;
+
 unsigned int                                    VBO, VAO, EBO;
+int                                             gl_init   = 0;
 int                                             map_ready = 0;
 int                                             ii        = 0;
 int                                             vi        = 0;
 int                                             vc        = 0;
-float                                           vertices[65536];
-unsigned int                                    indices[65536];
+float                                           vertices[250000];
+unsigned int                                    indices[150000];
 SDL_Window*                                     Window;
 std::vector<TextureUnit>                        textureUnits;
-unsigned int                                    textures[100];
+unsigned int                                    textures[200];
 std::vector<std::vector<std::shared_ptr<Line>>> sectorLines;
 
 void CompileShaders()
@@ -152,24 +153,24 @@ void AddFloorCeiling(float x0, float y0, float x1, float y1, float x2, float y2,
     vc += 3;
 }
 
-void GLRenderer::LoadTexture(std::shared_ptr<Texture> wtex, int i)
+void OpenGLRenderer::LoadTexture(std::shared_ptr<Texture> wtex, int i)
 {
     int            x, y;
     unsigned char* data = new unsigned char[wtex->width * wtex->height * 3];
     for(y = 0; y < wtex->height; y++)
         for(x = 0; x < wtex->width; x++)
         {
-            const auto& c                                            = m_wadFile.m_palette.colors[wtex->pixels[x + y * wtex->width]];
-            data[3 * (x + (wtex->height - y - 1) * wtex->width)]     = c.r;
-            data[3 * (x + (wtex->height - y - 1) * wtex->width) + 1] = c.g;
-            data[3 * (x + (wtex->height - y - 1) * wtex->width) + 2] = c.b;
+            const auto& c                                                  = m_wadFile.m_palette.colors[wtex->pixels[x + y * wtex->width]];
+            data[3 * (x + /*(wtex->height - y - 1)*/ y * wtex->width)]     = c.r;
+            data[3 * (x + /*(wtex->height - y - 1)*/ y * wtex->width) + 1] = c.g;
+            data[3 * (x + /*(wtex->height - y - 1)*/ y * wtex->width) + 2] = c.b;
         }
 
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, wtex->width, wtex->height, 1, GL_RGB, GL_UNSIGNED_BYTE, data);
     delete[] data;
 }
 
-void GLRenderer::LoadTextures()
+void OpenGLRenderer::LoadTextures()
 {
     printf("Texture units (%d):\n", textureUnits.size());
     glGenTextures(textureUnits.size(), textures);
@@ -198,7 +199,7 @@ void GLRenderer::LoadTextures()
     glUniform1iv(glGetUniformLocation(shaderProgram, "ourTexture"), textureUnits.size(), tus); // set it manually
 }
 
-std::shared_ptr<Texture> GLRenderer::AllocateTexture(std::string name, int& textureUnit, int& textureNo)
+std::shared_ptr<Texture> OpenGLRenderer::AllocateTexture(std::string name, int& textureUnit, int& textureNo)
 {
     // decide which texture unit and number the texture will go to, but create them later?
     if(name == "-")
@@ -235,6 +236,13 @@ std::shared_ptr<Texture> GLRenderer::AllocateTexture(std::string name, int& text
     tu.n = textureUnits.size();
     textureUnits.push_back(tu);
     return AllocateTexture(name, textureUnit, textureNo);
+}
+
+void OpenGLRenderer::Resize(int w, int h)
+{
+    glViewport(0, 0, w, h);
+    m_renderW = w;
+    m_renderH = h;
 }
 
 std::vector<Point> FindOutline(std::set<Point>& points, std::vector<std::shared_ptr<Line>>& lines)
@@ -311,7 +319,7 @@ std::vector<std::vector<Point>> ExtractOutline(std::vector<std::shared_ptr<Line>
     return result;
 }
 
-void GLRenderer::GenerateMap()
+void OpenGLRenderer::GenerateMap()
 {
     int q = 0;
     sectorLines.resize(m_gameState.m_mapDef->m_sectors.size());
@@ -356,7 +364,7 @@ void GLRenderer::GenerateMap()
         {
             const auto& backSector = segment->backSide.sector;
 
-            if(segment->frontSide.lowerTexture != "-")
+            if(segment->frontSide.lowerTexture != "-" && segment->frontSide.lowerTexture != "")
             {
                 wtex                  = AllocateTexture(segment->frontSide.lowerTexture, textureUnit, textureNo);
                 const auto texXOffset = (segment->xOffset + segment->frontSide.xOffset) / (float)wtex->width;
@@ -385,7 +393,7 @@ void GLRenderer::GenerateMap()
                                lightness);
             }
 
-            if(segment->frontSide.upperTexture != "-")
+            if(segment->frontSide.upperTexture != "-" && segment->frontSide.lowerTexture != "")
             {
                 wtex                  = AllocateTexture(segment->frontSide.upperTexture, textureUnit, textureNo);
                 const auto texXOffset = (segment->xOffset + segment->frontSide.xOffset) / (float)wtex->width;
@@ -426,82 +434,50 @@ void GLRenderer::GenerateMap()
         }*/
     }
 
-    // triangulate floors and ceilings
-    for(const auto& s : m_gameState.m_mapDef->m_sectors)
+    for(const auto& ss : m_gameState.m_mapDef->m_subSectors)
     {
-        const auto& lines    = sectorLines[s.sectorId];
-        const auto& outlines = ExtractOutline(lines);
-        if(outlines.empty())
+        const auto& sector = m_gameState.m_mapDef->m_sectors[ss->sectorId];
+        if(ss->segments.size())
         {
-            continue;
-        }
-
-        // outer outline
-        const auto&              outline = *outlines.begin();
-        std::vector<p2t::Point*> polyline;
-        for(const auto& p : outline)
-        {
-            polyline.push_back(new p2t::Point(p.x, p.y));
-        }
-
-        p2t::CDT cdt(polyline);
-        auto     outIter = outlines.begin();
-        outIter++;
-        while(outIter != outlines.end())
-        {
-            if(outIter->size() > 1)
+            // add triangle fan
+            auto   curr = ss->segments.begin();
+            Vertex fanStart((*curr)->s);
+            while(++curr != ss->segments.end())
             {
-                std::vector<p2t::Point*>* hole = new std::vector<p2t::Point*>();
-                for(const auto& p : *outIter)
+                std::shared_ptr<Texture> wtex;
+                int                      textureUnit, textureNo;
+                if(sector.floorTexture != "-")
                 {
-                    hole->push_back(new p2t::Point(p.x, p.y));
+                    wtex = AllocateTexture(sector.floorTexture, textureUnit, textureNo);
+                    AddFloorCeiling((*curr)->e.x,
+                                    (*curr)->e.y,
+                                    (*curr)->s.x,
+                                    (*curr)->s.y,
+                                    fanStart.x,
+                                    fanStart.y,
+                                    sector.floorHeight,
+                                    wtex->width,
+                                    wtex->height,
+                                    textureUnit,
+                                    textureNo,
+                                    sector.lightLevel);
                 }
-                cdt.AddHole(*hole);
-            }
-            outIter++;
-        }
-
-        cdt.Triangulate();
-        const auto& trs = cdt.GetTriangles();
-        for(const auto& tr : trs)
-        {
-            const auto&              p1 = tr->GetPoint(0);
-            const auto&              p2 = tr->GetPoint(1);
-            const auto&              p3 = tr->GetPoint(2);
-            std::shared_ptr<Texture> wtex;
-            int                      textureUnit, textureNo;
-
-            if(s.floorTexture != "-")
-            {
-                wtex = AllocateTexture(s.floorTexture, textureUnit, textureNo);
-                AddFloorCeiling(p1->x,
-                                p1->y,
-                                p2->x,
-                                p2->y,
-                                p3->x,
-                                p3->y,
-                                s.floorHeight,
-                                wtex->width,
-                                wtex->height,
-                                textureUnit,
-                                textureNo,
-                                s.lightLevel);
-            }
-            if(s.ceilingTexture != "-")
-            {
-                wtex = AllocateTexture(s.ceilingTexture, textureUnit, textureNo);
-                AddFloorCeiling(p3->x,
-                                p3->y,
-                                p2->x,
-                                p2->y,
-                                p1->x,
-                                p1->y,
-                                s.ceilingHeight,
-                                wtex->width,
-                                wtex->height,
-                                textureUnit,
-                                textureNo,
-                                s.lightLevel);
+                if(sector.ceilingTexture != "-")
+                {
+                    wtex = AllocateTexture(sector.ceilingTexture, textureUnit, textureNo);
+                    AddFloorCeiling(fanStart.x,
+                                    fanStart.y,
+                                    (*curr)->s.x,
+                                    (*curr)->s.y,
+                                    (*curr)->e.x,
+                                    (*curr)->e.y,
+                                    sector.ceilingHeight,
+                                    wtex->width,
+                                    wtex->height,
+                                    textureUnit,
+                                    textureNo,
+                                    sector.lightLevel);
+                }
             }
         }
     }
@@ -540,6 +516,24 @@ void GLRenderer::GenerateMap()
 
 void InitGL()
 {
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+    SDL_GLContext Context = SDL_GL_CreateContext(Window);
+    SDL_GL_SetSwapInterval(1);
+
+    if(!gladLoadGL())
+    {
+        printf("Error initializing GL!\n");
+        abort();
+    }
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     CompileShaders();
@@ -553,33 +547,30 @@ void DestroyGL()
     glDeleteProgram(shaderProgram);
 }
 
-GLRenderer::GLRenderer(const GameState& gameState, const WADFile& wadFile) : Renderer {gameState}, m_wadFile {wadFile}
+OpenGLRenderer::OpenGLRenderer(const GameState& gameState, const WADFile& wadFile, SDL_Window* window, int renderW, int renderH) :
+    Renderer {gameState}, m_wadFile {wadFile}, m_window {window}, m_renderW {renderW}, m_renderH {renderH}
 {
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    Window = m_window;
+}
 
-    Window                = SDL_CreateWindow("gldoom", 0, 0, 1280, 900, SDL_WINDOW_OPENGL);
-    SDL_GLContext Context = SDL_GL_CreateContext(Window);
-    SDL_GL_SetSwapInterval(1);
-
-    if(!gladLoadGL())
-    {
-        printf("Error initializing GL!\n");
-        abort();
-    }
-
-    InitGL();
+void OpenGLRenderer::Reset()
+{
+    map_ready = 0;
+    ii        = 0;
+    vi        = 0;
+    vc        = 0;
+    textureUnits.clear();
+    sectorLines.clear();
 }
 
 // entry method for rendering a frame
-void GLRenderer::RenderFrame()
+void OpenGLRenderer::RenderFrame()
 {
+    if(!gl_init)
+    {
+        InitGL();
+        gl_init = 1;
+    }
     if(!map_ready)
     {
         GenerateMap();
@@ -594,7 +585,8 @@ void GLRenderer::RenderFrame()
     viewMat                 = glm::scale(viewMat, glm::vec3(0.001f, 0.001f, 0.001f));
     viewMat                 = glm::rotate(viewMat, -m_gameState.m_player.a + glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     viewMat                 = glm::translate(viewMat, glm::vec3(-m_gameState.m_player.x, -m_gameState.m_player.y, -m_gameState.m_player.z));
-    glm::mat4 projectionMat = glm::perspective(glm::radians(90.0f), 1280.0f / 900.0f, 0.01f, 100.0f);
+//    glm::mat4 projectionMat = glm::perspective(glm::radians(48.5f) / 1.15f, 1.15f * m_renderW / (float)m_renderH, 0.01f, 100.0f);
+    glm::mat4 projectionMat = glm::perspective(glm::radians(53.75f) / 1.27f, 1.27f * m_renderW / (float)m_renderH, 0.01f, 100.0f);
 
     unsigned int viewLoc = glGetUniformLocation(shaderProgram, "view");
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(viewMat));
@@ -615,7 +607,7 @@ void GLRenderer::RenderFrame()
     SDL_GL_SwapWindow(Window);
 }
 
-void GLRenderer::RenderFrame(FrameBuffer& frameBuffer)
+void OpenGLRenderer::RenderFrame(FrameBuffer& frameBuffer)
 {
     /*
     Initialize(frameBuffer);
@@ -633,9 +625,9 @@ void GLRenderer::RenderFrame(FrameBuffer& frameBuffer)
     RenderOverlay();*/
 }
 
-void GLRenderer::Initialize() { }
+void OpenGLRenderer::Initialize() { }
 
-void GLRenderer::RenderSegments() const
+void OpenGLRenderer::RenderSegments() const
 {
     // iterate through all segments (map lines) in visibility order returned by traversing the map's BSP tree
     for(const auto& segment : m_gameState.m_mapDef->GetSegmentsToDraw(m_gameState.m_player))
@@ -654,7 +646,7 @@ void GLRenderer::RenderSegments() const
     }
 }
 
-void GLRenderer::RenderMapSegment(const Segment& segment) const
+void OpenGLRenderer::RenderMapSegment(const Segment& segment) const
 {
 #if(0)
     VisibleSegment vs {segment};
@@ -821,7 +813,7 @@ void GLRenderer::RenderMapSegmentSpan(const Frame::Span& span, const VisibleSegm
 #endif
 
 // render floors and ceilings based on data collected during drawing walls
-void GLRenderer::RenderPlanes() const
+void OpenGLRenderer::RenderPlanes() const
 {
 #if(0)
     for(const auto& floorPlane : m_frame->m_floorPlanes)
@@ -838,7 +830,7 @@ void GLRenderer::RenderPlanes() const
 }
 
 // render sprites (things or semi-transparent walls)
-void GLRenderer::RenderSprites() const
+void OpenGLRenderer::RenderSprites() const
 {
 #if(0)
     // add things in visited sectors to list of sprites
@@ -951,7 +943,7 @@ void GLRenderer::RenderSpriteWall(Frame::SpriteWall* const wall) const
 }
 #endif
 
-void GLRenderer::RenderOverlay() const
+void OpenGLRenderer::RenderOverlay() const
 {
     // TODO: render HUD etc.
 }
@@ -961,5 +953,5 @@ Frame* GLRenderer::GetLastFrame() const
     return m_frame.get();
 }
 */
-GLRenderer::~GLRenderer() { }
+OpenGLRenderer::~OpenGLRenderer() { }
 } // namespace rtdoom

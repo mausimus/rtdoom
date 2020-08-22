@@ -36,9 +36,6 @@
     <ClInclude Include="GameState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ViewRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MapRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -81,34 +78,16 @@
     <ClInclude Include="Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GLRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="glad\glad.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="glad\KHR\khrplatform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="poly2tri\poly2tri.h">
+    <ClInclude Include="SoftwareRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="poly2tri\sweep\advancing_front.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="poly2tri\sweep\cdt.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="poly2tri\sweep\sweep.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="poly2tri\sweep\sweep_context.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="poly2tri\common\shapes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="poly2tri\common\utils.h">
+    <ClInclude Include="OpenGLRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -132,9 +111,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GameState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ViewRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MapRenderer.cpp">
@@ -176,25 +152,13 @@
     <ClCompile Include="Helpers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GLRenderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="poly2tri\sweep\advancing_front.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="poly2tri\sweep\cdt.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="poly2tri\sweep\sweep.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="poly2tri\sweep\sweep_context.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="poly2tri\common\shapes.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="glad\glad.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SoftwareRenderer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OpenGLRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

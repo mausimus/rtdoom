@@ -5,8 +5,8 @@ using Angle = float;
 namespace rtdoom
 {
 // output display size (scaled framebuffer)
-constexpr int   s_displayX           = 800;
-constexpr int   s_displayY           = 450;
+constexpr int   s_displayX           = 1280;
+constexpr int   s_displayY           = 800;
 constexpr float s_multisamplingLevel = 1.0f;
 constexpr float s_minDistance        = 1.0f;
 constexpr float s_minScale           = 0.025f;

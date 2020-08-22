@@ -31,8 +31,10 @@ int main(int /*argc*/, char** /*argv*/)
         SDL_Window*   sdlWindow;
         InitSDL(sdlRenderer, sdlWindow);
 
-        GameLoop gameLoop {sdlRenderer, wadFile};
+        GameLoop gameLoop {sdlRenderer, sdlWindow, wadFile};
         gameLoop.Start(mapIter->second);
+
+        gameLoop.SetRenderingMode(Renderer::RenderingMode::OpenGL);
 
         SDL_Event         event;
         const static auto tickFrequency = SDL_GetPerformanceFrequency();
@@ -72,13 +74,20 @@ int main(int /*argc*/, char** /*argv*/)
                         gameLoop.Rotate(p ? 1 : 0);
                         break;
                     case SDLK_1:
-                        gameLoop.SetRenderingMode(ViewRenderer::RenderingMode::Wireframe);
+                        gameLoop.SetRenderingMode(Renderer::RenderingMode::Wireframe);
+                        SDL_SetWindowTitle(sdlWindow, "rtdoom (Wireframe)");
                         break;
                     case SDLK_2:
-                        gameLoop.SetRenderingMode(ViewRenderer::RenderingMode::Solid);
+                        gameLoop.SetRenderingMode(Renderer::RenderingMode::Solid);
+                        SDL_SetWindowTitle(sdlWindow, "rtdoom (Solid)");
                         break;
                     case SDLK_3:
-                        gameLoop.SetRenderingMode(ViewRenderer::RenderingMode::Textured);
+                        gameLoop.SetRenderingMode(Renderer::RenderingMode::Textured);
+                        SDL_SetWindowTitle(sdlWindow, "rtdoom (Textured)");
+                        break;
+                    case SDLK_4:
+                        gameLoop.SetRenderingMode(Renderer::RenderingMode::OpenGL);
+                        SDL_SetWindowTitle(sdlWindow, "rtdoom (OpenGL)");
                         break;
                     case SDLK_s:
                         if(p)
@@ -108,16 +117,22 @@ int main(int /*argc*/, char** /*argv*/)
             }
 
             const Frame* frame = gameLoop.RenderFrame();
-            SDL_RenderPresent(sdlRenderer);
 
             const auto nextCounter = SDL_GetPerformanceCounter();
             const auto seconds     = (nextCounter - tickCounter) / static_cast<float>(tickFrequency);
             tickCounter            = nextCounter;
             gameLoop.Tick(seconds);
-            /*
-            cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " << frame->m_numFloorPlanes << "+"
-                 << frame->m_numCeilingPlanes << " planes, " << frame->m_sprites.size() << " sprites" << endl;
-        */}
+
+            if(frame != NULL)
+            {
+                cout << "Frame time: " << seconds * 1000.0 << "ms: " << frame->m_numSegments << " segs, " << frame->m_numFloorPlanes << "+"
+                     << frame->m_numCeilingPlanes << " planes, " << frame->m_sprites.size() << " sprites" << endl;
+            }
+            else
+            {
+                cout << "Frame time: " << seconds * 1000.0 << "ms" << endl;
+            }
+        }
 
         DestroySDL(sdlRenderer, sdlWindow);
     }
@@ -143,8 +158,12 @@ void InitSDL(SDL_Renderer*& sdlRenderer, SDL_Window*& sdlWindow)
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     }
 
-    sdlWindow = SDL_CreateWindow(
-        "rtdoom", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, s_displayX, s_displayY, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    sdlWindow = SDL_CreateWindow("rtdoom",
+                                 SDL_WINDOWPOS_UNDEFINED,
+                                 SDL_WINDOWPOS_UNDEFINED,
+                                 s_displayX,
+                                 s_displayY,
+                                 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
     sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED);
 }
