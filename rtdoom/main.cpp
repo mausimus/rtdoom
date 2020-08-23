@@ -34,8 +34,6 @@ int main(int /*argc*/, char** /*argv*/)
         GameLoop gameLoop {sdlRenderer, sdlWindow, wadFile};
         gameLoop.Start(mapIter->second);
 
-        gameLoop.SetRenderingMode(Renderer::RenderingMode::OpenGL);
-
         SDL_Event         event;
         const static auto tickFrequency = SDL_GetPerformanceFrequency();
         auto              tickCounter   = SDL_GetPerformanceCounter();

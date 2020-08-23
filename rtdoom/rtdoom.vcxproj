@@ -169,7 +169,9 @@
     <ClInclude Include="GameState.h" />
     <ClInclude Include="glad\glad.h" />
     <ClInclude Include="glad\KHR\khrplatform.h" />
-    <ClInclude Include="OpenGLRenderer.h" />
+    <ClInclude Include="GLContext.h" />
+    <ClInclude Include="GLRenderer.h" />
+    <ClInclude Include="GLViewport.h" />
     <ClInclude Include="MapDef.h" />
     <ClInclude Include="MapRenderer.h" />
     <ClInclude Include="MapStore.h" />
@@ -195,7 +197,9 @@
     <ClCompile Include="GameLoop.cpp" />
     <ClCompile Include="GameState.cpp" />
     <ClCompile Include="glad\glad.cpp" />
-    <ClCompile Include="OpenGLRenderer.cpp" />
+    <ClCompile Include="GLContext.cpp" />
+    <ClCompile Include="GLRenderer.cpp" />
+    <ClCompile Include="GLViewport.cpp" />
     <ClCompile Include="MapDef.cpp" />
     <ClCompile Include="MapRenderer.cpp" />
     <ClCompile Include="MapStore.cpp" />

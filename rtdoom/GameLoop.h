@@ -7,7 +7,8 @@
 #include "Viewport.h"
 #include "GameState.h"
 #include "SoftwareRenderer.h"
-#include "OpenGLRenderer.h"
+#include "GLRenderer.h"
+#include "GLViewport.h"
 #include "MapRenderer.h"
 
 namespace rtdoom
@@ -17,7 +18,8 @@ class GameLoop
 protected:
     GameState               m_gameState;
     SoftwareRenderer        m_softwareRenderer;
-    OpenGLRenderer          m_openGLRenderer;
+    GLRenderer              m_glRenderer;
+    GLViewport              m_glViewport;
     Viewport                m_playerViewport;
     MapRenderer             m_mapRenderer;
     Viewport                m_mapViewport;

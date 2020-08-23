@@ -4,8 +4,9 @@
 namespace rtdoom
 {
 GameLoop::GameLoop(SDL_Renderer* sdlRenderer, SDL_Window* window, const WADFile& wadFile) :
-    m_gameState {}, m_moveDirection {0}, m_rotateDirection {0}, m_isRunning {false}, m_stepFrame {false},
-    m_softwareRenderer {m_gameState, wadFile}, m_openGLRenderer {m_gameState, wadFile, window, s_displayX, s_displayY},
+    m_gameState {}, m_moveDirection {0}, m_rotateDirection {0}, m_isRunning {false}, m_stepFrame {false}, m_softwareRenderer {m_gameState,
+                                                                                                                              wadFile},
+    m_glRenderer {m_gameState, wadFile, s_displayX, s_displayY}, m_glViewport {window, m_glRenderer},
     m_playerViewport {sdlRenderer, m_softwareRenderer, ViewScale(s_displayX), ViewScale(s_displayY), wadFile.m_palette, true},
     m_mapRenderer {m_gameState},
     m_mapViewport {sdlRenderer, m_mapRenderer, MapScale(s_displayX), MapScale(s_displayY), wadFile.m_palette, false},
@@ -36,7 +37,7 @@ const Frame* GameLoop::RenderFrame()
 {
     if(m_renderingMode == Renderer::RenderingMode::OpenGL)
     {
-        m_openGLRenderer.RenderFrame();
+        m_glViewport.Draw();
         return NULL;
     }
     else
@@ -80,7 +81,7 @@ void GameLoop::ResizeWindow(int width, int height)
 {
     m_playerViewport.Resize(ViewScale(width), ViewScale(height));
     m_mapViewport.Resize(MapScale(width), MapScale(height));
-    m_openGLRenderer.Resize(ViewScale(width), ViewScale(height));
+    m_glViewport.Resize(width, height);
 }
 
 void GameLoop::SetRenderingMode(Renderer::RenderingMode renderingMode)
@@ -97,7 +98,7 @@ void GameLoop::Start(const MapStore& mapStore)
     m_gameState.NewGame(mapStore);
     ClipPlayer();
     m_isRunning = true;
-    m_openGLRenderer.Reset();
+    m_glViewport.Reset();
 }
 
 void GameLoop::Stop()

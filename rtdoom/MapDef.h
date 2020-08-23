@@ -11,7 +11,6 @@ protected:
     MapStore m_store;
 
     static bool IsInFrontOf(const Point& pov, const MapStore::Node& node) noexcept;
-    //    static bool IsInFrontOf(const Point& pov, const MapStore::Vertex& sv, const MapStore::Vertex& ev) noexcept;
     static bool IsInFrontOf(const Point& pov, const Vertex& sv, const Vertex& ev) noexcept;
 
     void LookupVertex(unsigned short vertexNo, float& x, float& y);
@@ -29,6 +28,7 @@ protected:
 
 public:
     static bool                             IsInFrontOf(const Point& pov, const Line& line) noexcept;
+    bool                                    HasGL() const;
     std::vector<Line>                       m_wireframe;
     std::vector<Sector>                     m_sectors;
     std::vector<std::vector<Thing>>         m_things;

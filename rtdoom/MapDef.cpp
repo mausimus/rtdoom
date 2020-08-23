@@ -335,8 +335,13 @@ void MapDef::BuildSectors()
     }
 }
 
+bool MapDef::HasGL() const {
+    return m_store.m_glSegments.size();
+}
+
 void MapDef::BuildSubSectors()
 {
+    int subSectorId = 0;
     for(const auto& subSector : m_store.m_subSectors)
     {
         int                         sectorId = -1;
@@ -350,7 +355,7 @@ void MapDef::BuildSubSectors()
             }
             segments.push_back(segment);
         }
-        m_subSectors.push_back(std::make_shared<SubSector>(sectorId, segments));
+        m_subSectors.push_back(std::make_shared<SubSector>(subSectorId++, sectorId, segments));
     }
 }
 

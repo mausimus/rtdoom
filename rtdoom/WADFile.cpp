@@ -317,7 +317,7 @@ WADFile::LumpType WADFile::GetLumpType(const Lump& lump) const
         }
         return LumpType::Unknown;
     }
-    if(lump.lumpName[0] == 'G' && lump.lumpName[1] == 'L')
+    if(lump.lumpName[0] == 'G' && lump.lumpName[1] == 'L' && lump.lumpName[2] == '_')
     {
         return LumpType::MapMarker;
     }

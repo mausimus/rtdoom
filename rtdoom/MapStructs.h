@@ -122,8 +122,11 @@ struct Segment : Line
 
 struct SubSector
 {
-    SubSector(int sectorId, std::vector<std::shared_ptr<Segment>> segments) : sectorId {sectorId}, segments(segments) { }
+    SubSector(int subSectorId, int sectorId, std::vector<std::shared_ptr<Segment>> segments) :
+        subSectorId {subSectorId}, sectorId {sectorId}, segments(segments)
+    { }
 
+    int                                   subSectorId;
     int                                   sectorId;
     std::vector<std::shared_ptr<Segment>> segments;
 };
