@@ -56,8 +56,9 @@ No assets included - you will need to drop off a .wad file from either the origi
 
 ### OpenGL Renderer
 
-* [GLRenderer.cpp](rtdoom/GLRenderer.cpp) contains an additional renderer implemented using OpenGL 3.3, press 4 to switch
-the view to hardware-accelerated OpenGL. You will need to supply a V2 .gwa file alongside the .wad containing GL node data,
+* [GLRenderer.cpp](rtdoom/GLRenderer.cpp) and [GLContext.cpp](rtdoom/GLContext.cpp) contain an additional simple renderer
+implemented using OpenGL 3.3 core profile, press 4 to switch the view to hardware-accelerated OpenGL.
+You will need to supply a V2 .gwa file alongside the .wad containing GL node data,
 which can be generated using [glBSP](http://glbsp.sourceforge.net/).
 
 ![screenshot](images/screen5.png)
