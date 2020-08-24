@@ -23,7 +23,6 @@ public:
     void Resize(int width, int height);
     void Reset();
     void Draw();
-    //    void DrawSteps();
     ~GLViewport();
 };
 } // namespace rtdoom

@@ -6,7 +6,7 @@
 namespace rtdoom
 {
 GLViewport::GLViewport(SDL_Window* sdlWindow, GLRenderer& glRenderer) :
-    m_window(sdlWindow), m_renderer(glRenderer), m_glReady(false), m_mapReady(false)
+    m_window {sdlWindow}, m_renderer {glRenderer}, m_glReady {false}, m_mapReady {false}
 { }
 
 void GLViewport::Initialize()
@@ -22,10 +22,6 @@ void GLViewport::Initialize()
 
     SDL_GL_CreateContext(m_window);
     SDL_GL_SetSwapInterval(1);
-}
-
-GLViewport::~GLViewport()
-{
 }
 
 void GLViewport::Reset()
@@ -57,5 +53,7 @@ void GLViewport::Resize(int width, int height)
 {
     m_renderer.Resize(width, height);
 }
+
+GLViewport::~GLViewport() { }
 
 } // namespace rtdoom

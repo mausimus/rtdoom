@@ -189,11 +189,6 @@ bool MapDef::IsInFrontOf(const Point& pov, const MapStore::Node& node) noexcept
         pov, Line(Vertex {node.partitionX, node.partitionY}, Vertex {node.partitionX + node.deltaX, node.partitionY + node.deltaY}));
 }
 
-/*bool MapDef::IsInFrontOf(const Point& pov, const MapStore::Vertex& sv, const MapStore::Vertex& ev) noexcept
-{
-    return IsInFrontOf(pov, Line(Vertex {sv.x, sv.y}, Vertex {ev.x, ev.y}));
-}*/
-
 bool MapDef::IsInFrontOf(const Point& pov, const Vertex& sv, const Vertex& ev) noexcept
 {
     return IsInFrontOf(pov, Line(sv, ev));
@@ -320,10 +315,6 @@ void MapDef::BuildSegments()
 void MapDef::ProcessSubsector(std::shared_ptr<SubSector> subSector, deque<std::shared_ptr<SubSector>>& subSectors) const
 {
     subSectors.push_back(subSector);
-/*    for(auto i = 0; i < subSector.numSegments; i++)
-    {
-        segments.push_back(m_segments[subSector.firstSegment + i]);
-    }*/
 }
 
 void MapDef::BuildSectors()

@@ -25,7 +25,7 @@ void SolidPainter::PaintPlane(const Frame::Plane& plane) const
 {
     const bool isSky = plane.isSky();
 
-    for(auto y = 0; y < plane.spans.size(); y++)
+    for(size_t y = 0; y < plane.spans.size(); y++)
     {
         const auto& spans          = plane.spans[y];
         auto        centerDistance = m_projection.PlaneDistance(y, plane.h);

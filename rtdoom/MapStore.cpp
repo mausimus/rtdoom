@@ -34,7 +34,12 @@ void MapStore::Load(const std::map<std::string, std::vector<char>>& mapLumps)
 
 void MapStore::LoadGL(const std::map<std::string, std::vector<char>>& glLumps)
 {
-    m_glVertexes = Helpers::LoadEntities<GLVertex>(glLumps.at("GL_VERT"s), 4);
+    const auto& glVertexes = glLumps.at("GL_VERT"s);
+    if(strncmp(glVertexes.data(), "gNd2", 4) != 0)
+    {
+        throw std::runtime_error("Only V2 glBSP format is supported.");
+    }
+    m_glVertexes = Helpers::LoadEntities<GLVertex>(glVertexes, 4);
     m_glSegments = Helpers::LoadEntities<GLSegment>(glLumps.at("GL_SEGS"s));
     m_subSectors = Helpers::LoadEntities<SubSector>(glLumps.at("GL_SSECT"s));
     m_nodes      = Helpers::LoadEntities<Node>(glLumps.at("GL_NODES"s));

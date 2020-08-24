@@ -40,7 +40,7 @@ of algorithms used in the original game, most of which are replicated here.
 
 ### Code
 
-* [ViewRenderer.cpp](rtdoom/ViewRenderer.cpp) contains the core of the frame rendering algorithm
+* [SoftwareRenderer.cpp](rtdoom/SoftwareRenderer.cpp) contains the core of the frame rendering algorithm
 
 Test program uses SDL2 to render the raw framebuffer in a screen window, controls are:
 * arrow keys to move around
@@ -53,3 +53,11 @@ Built on Windows / Visual Studio 2017 using C++ 17 profile.
 
 No assets included - you will need to drop off a .wad file from either the original Doom
 (1 or 2, shareware is ok) or the [Freedoom](https://freedoom.github.io/) project into the .exe directory!
+
+### OpenGL Renderer
+
+* [GLRenderer.cpp](rtdoom/GLRenderer.cpp) contains an additional renderer implemented using OpenGL 3.3, press 4 to switch
+the view to hardware-accelerated OpenGL. You will need to supply a V2 .gwa file alongside the .wad containing GL node data,
+which can be generated using [glBSP](http://glbsp.sourceforge.net/).
+
+![screenshot](images/screen5.png)

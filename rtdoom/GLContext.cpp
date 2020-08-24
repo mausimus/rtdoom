@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "GLContext.h"
 
+#pragma warning(disable : 4201)
+
 #include "glad/glad.h"
 #include "glm/gtc/type_ptr.hpp"
 
@@ -8,14 +10,15 @@ namespace rtdoom
 {
 
 GLContext::GLContext(const WADFile& wadFile) :
-    m_wadFile {wadFile}, m_EBO {}, m_VBO {}, m_VAO {}, m_fragmentShader {}, m_shaderProgram {}, m_vertexShader {}
+    m_wadFile {wadFile}, m_EBO {}, m_VBO {}, m_VAO {}, m_fragmentShader {}, m_shaderProgram {}, m_vertexShader {}, m_vertexCounter {},
+    m_maxTextureUnits {}
 { }
 
 void GLContext::Reset()
 {
+    m_vertexCounter = 0;
     m_vertices.clear();
     m_indices.clear();
-    m_vertexCounter = 0;
     m_textures.clear();
     m_textureUnits.clear();
     m_subSectorOffsets.clear();
@@ -23,14 +26,7 @@ void GLContext::Reset()
 
 void GLContext::AddVertex(float x, float y, float z, float tx, float ty, float tn, float tz, float l)
 {
-    m_vertices.push_back(x);
-    m_vertices.push_back(y);
-    m_vertices.push_back(z);
-    m_vertices.push_back(tx);
-    m_vertices.push_back(ty);
-    m_vertices.push_back(tz);
-    m_vertices.push_back(tn);
-    m_vertices.push_back(l);
+    m_vertices.emplace_back(VertexInfo {x, y, z, tx, ty, tz, tn, l});
 }
 
 void GLContext::LinkTriangle(int a, int b, int c)
@@ -40,26 +36,23 @@ void GLContext::LinkTriangle(int a, int b, int c)
     m_indices.push_back(c);
 }
 
-// wall section
 void GLContext::AddWallSegment(
-    float x0, float y0, float z0, float x1, float y1, float z1, float tx0, float ty0, float tx1, float ty1, int tn, int ti, float l)
+    const Vertex& v0, float z0, const Vertex& v1, float z1, float tx0, float ty0, float tx1, float ty1, int tn, int ti, float l)
 {
-    AddVertex(x0, y0, z0, tx0, ty0, tn, ti, l);
-    AddVertex(x1, y1, z0, tx1, ty0, tn, ti, l);
-    AddVertex(x1, y1, z1, tx1, ty1, tn, ti, l);
-    AddVertex(x0, y0, z1, tx0, ty1, tn, ti, l);
+    AddVertex(v0.x, v0.y, z0, tx0, ty0, static_cast<float>(tn), static_cast<float>(ti), l);
+    AddVertex(v1.x, v1.y, z0, tx1, ty0, static_cast<float>(tn), static_cast<float>(ti), l);
+    AddVertex(v1.x, v1.y, z1, tx1, ty1, static_cast<float>(tn), static_cast<float>(ti), l);
+    AddVertex(v0.x, v0.y, z1, tx0, ty1, static_cast<float>(tn), static_cast<float>(ti), l);
     LinkTriangle(m_vertexCounter, m_vertexCounter + 1, m_vertexCounter + 2);
     LinkTriangle(m_vertexCounter, m_vertexCounter + 2, m_vertexCounter + 3);
     m_vertexCounter += 4;
 }
 
-// floor/ceil triangle
-void GLContext::AddFloorCeiling(
-    float x0, float y0, float x1, float y1, float x2, float y2, float z, float tw, float th, int tn, int ti, float l)
+void GLContext::AddFloorCeiling(const Vertex& v0, const Vertex& v1, const Vertex& v2, float z, float tw, float th, int tn, int ti, float l)
 {
-    AddVertex(x0, y0, z, x0 / tw, y0 / th, tn, ti, l);
-    AddVertex(x1, y1, z, x1 / tw, y1 / th, tn, ti, l);
-    AddVertex(x2, y2, z, x2 / tw, y2 / th, tn, ti, l);
+    AddVertex(v0.x, v0.y, z, v0.x / tw, v0.y / th, static_cast<float>(tn), static_cast<float>(ti), l);
+    AddVertex(v1.x, v1.y, z, v1.x / tw, v1.y / th, static_cast<float>(tn), static_cast<float>(ti), l);
+    AddVertex(v2.x, v2.y, z, v2.x / tw, v2.y / th, static_cast<float>(tn), static_cast<float>(ti), l);
     LinkTriangle(m_vertexCounter, m_vertexCounter + 1, m_vertexCounter + 2);
     m_vertexCounter += 3;
 }
@@ -71,30 +64,38 @@ void GLContext::LoadTexture(std::shared_ptr<Texture> wtex, int i)
     for(y = 0; y < wtex->height; y++)
         for(x = 0; x < wtex->width; x++)
         {
-            const auto& c                       = m_wadFile.m_palette.colors[wtex->pixels[x + y * wtex->width]];
-            data[3 * (x + y * wtex->width)]     = c.r;
-            data[3 * (x + y * wtex->width) + 1] = c.g;
-            data[3 * (x + y * wtex->width) + 2] = c.b;
+            const auto&  c   = m_wadFile.m_palette.colors[wtex->pixels[x + y * wtex->width]];
+            const size_t ofs = 3 * (x + y * wtex->width);
+            data[ofs]        = c.r;
+            data[ofs + 1]    = c.g;
+            data[ofs + 2]    = c.b;
         }
 
     glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, wtex->width, wtex->height, 1, GL_RGB, GL_UNSIGNED_BYTE, data);
     delete[] data;
 }
 
+void GLContext::Initialize()
+{
+    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_maxTextureUnits);
+    if(m_maxTextureUnits > 32)
+    {
+        m_maxTextureUnits = 32;
+    }
+}
+
 void GLContext::LoadTextures()
 {
-    printf("Texture units (%d):\n", m_textureUnits.size());
     m_textures.resize(m_textureUnits.size());
     glGenTextures(m_textureUnits.size(), m_textures.data());
-    for(int tu = 0; tu < m_textureUnits.size(); tu++)
+    for(size_t tu = 0; tu < m_textureUnits.size(); tu++)
     {
         TextureUnit& unit = m_textureUnits.at(tu);
 
-        printf("  %d = %d x %d (%d):\n", tu, unit.w, unit.h, unit.textures.size());
         glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures[tu]);
         glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, unit.w, unit.h, unit.textures.size(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
 
-        for(int tn = 0; tn < unit.textures.size(); tn++)
+        for(size_t tn = 0; tn < unit.textures.size(); tn++)
         {
             LoadTexture(unit.textures[tn], tn);
         }
@@ -110,21 +111,22 @@ void GLContext::LoadTextures()
 
     std::vector<int> textureNos;
     textureNos.resize(m_textureUnits.size());
-    for(int i = 0; i < textureNos.size(); i++)
+    for(size_t i = 0; i < textureNos.size(); i++)
     {
         textureNos[i] = i;
     }
-    glUniform1iv(glGetUniformLocation(m_shaderProgram, "ourTexture"), m_textureUnits.size(), textureNos.data());
+    glUniform1iv(glGetUniformLocation(m_shaderProgram, "_textures"), m_textureUnits.size(), textureNos.data());
 }
 
-void GLContext::BindView(glm::f32 *viewMat, glm::f32 *projectionMat) {
-    unsigned int viewLoc = glGetUniformLocation(m_shaderProgram, "view");
+void GLContext::BindView(glm::f32* viewMat, glm::f32* projectionMat)
+{
+    unsigned int viewLoc = glGetUniformLocation(m_shaderProgram, "_view");
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, viewMat);
 
-    unsigned int projectionLoc = glGetUniformLocation(m_shaderProgram, "projection");
+    unsigned int projectionLoc = glGetUniformLocation(m_shaderProgram, "_projection");
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projectionMat);
 
-    for(int tu = 0; tu < m_textureUnits.size(); tu++)
+    for(size_t tu = 0; tu < m_textureUnits.size(); tu++)
     {
         glActiveTexture(GL_TEXTURE0 + tu);
         glBindTexture(GL_TEXTURE_2D_ARRAY, m_textures[tu]);
@@ -143,31 +145,39 @@ std::shared_ptr<Texture> GLContext::AllocateTexture(std::string name, int& textu
         textureNo   = 0;
         return NULL;
     }
-    auto wtex = m_wadFile.m_textures.find(name)->second;
-    int  tui;
+    auto   texture = m_wadFile.m_textures.find(name)->second;
+    size_t tui;
     for(tui = 0; tui < m_textureUnits.size(); tui++)
     {
-        if(m_textureUnits[tui].w == wtex->width && m_textureUnits[tui].h == wtex->height)
+        if(m_textureUnits[tui].w == texture->width && m_textureUnits[tui].h == texture->height)
         {
             textureUnit = tui;
-            for(int tn = 0; tn < m_textureUnits[tui].textures.size(); tn++)
+            for(size_t tn = 0; tn < m_textureUnits[tui].textures.size(); tn++)
             {
                 if(m_textureUnits[tui].textures[tn]->name == name)
                 {
                     textureNo = tn;
-                    return wtex;
+                    return texture;
                 }
             }
             textureNo = m_textureUnits[tui].textures.size();
-            m_textureUnits[tui].textures.push_back(wtex);
-            return wtex;
+            m_textureUnits[tui].textures.push_back(texture);
+            return texture;
         }
     }
 
-    // create and retry
+    // create another TU and retry
+    if(m_textureUnits.size() >= static_cast<size_t>(m_maxTextureUnits))
+    {
+        // TODO: create "missing texture" image at (0,0)
+        textureUnit = 0;
+        textureNo   = 0;
+        return texture;
+    }
+
     TextureUnit tu;
-    tu.w = wtex->width;
-    tu.h = wtex->height;
+    tu.w = texture->width;
+    tu.h = texture->height;
     tu.n = m_textureUnits.size();
     m_textureUnits.push_back(tu);
     return AllocateTexture(name, textureUnit, textureNo);
@@ -184,8 +194,8 @@ void GLContext::CompileShaders(const char* vertexShaderSource, const char* fragm
     if(!success)
     {
         glGetShaderInfoLog(m_vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-        abort();
+        std::cout << infoLog << std::endl;
+        throw std::runtime_error("Vertex shader compilation failed.");
     }
 
     m_fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -195,8 +205,8 @@ void GLContext::CompileShaders(const char* vertexShaderSource, const char* fragm
     if(!success)
     {
         glGetShaderInfoLog(m_fragmentShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-        abort();
+        std::cout << infoLog << std::endl;
+        throw std::runtime_error("Fragment shader compilation failed.");
     }
 
     m_shaderProgram = glCreateProgram();
@@ -207,8 +217,8 @@ void GLContext::CompileShaders(const char* vertexShaderSource, const char* fragm
     if(!success)
     {
         glGetProgramInfoLog(m_shaderProgram, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-        abort();
+        std::cout << infoLog << std::endl;
+        throw std::runtime_error("Shader linking failed.");
     }
     glDeleteShader(m_vertexShader);
     glDeleteShader(m_fragmentShader);
@@ -227,15 +237,11 @@ void GLContext::BindMap()
     glGenVertexArrays(1, &m_VAO);
     glGenBuffers(1, &m_VBO);
     glGenBuffers(1, &m_EBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
     glBindVertexArray(m_VAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * m_vertices.size(), m_vertices.data(), GL_STATIC_DRAW);
-
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexInfo) * m_vertices.size(), m_vertices.data(), GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * m_indices.size(), m_indices.data(), GL_STATIC_DRAW);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
@@ -244,15 +250,7 @@ void GLContext::BindMap()
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(7 * sizeof(float)));
     glEnableVertexAttribArray(3);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
     LoadTextures();

@@ -13,7 +13,7 @@ class SoftwareRenderer : public Renderer
 protected:
     struct VisibleSegment
     {
-        VisibleSegment(const Segment& segment) : mapSegment {segment} {}
+        VisibleSegment(const Segment& segment) : mapSegment {segment} { }
 
         const Segment& mapSegment;
         Vector         normalVector;
@@ -36,16 +36,15 @@ protected:
     void RenderSpriteThing(Frame::SpriteThing* const thing) const;
     void RenderSpriteWall(Frame::SpriteWall* const wall) const;
 
-    std::vector<std::vector<bool>>
-          ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, float spriteScale) const;
-    Angle GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
+    std::vector<std::vector<bool>> ClipSprite(int startX, int startY, int spriteWidth, int spriteHeight, float spriteScale) const;
+    Angle                          GetViewAngle(int x, const VisibleSegment& visibleSegment) const;
 
     FrameBuffer*                m_frameBuffer;
     const WADFile&              m_wadFile;
     std::unique_ptr<Projection> m_projection;
     std::unique_ptr<Frame>      m_frame;
     std::unique_ptr<Painter>    m_painter;
-    RenderingMode               m_renderingMode;
+    RendererBase::RenderingMode m_renderingMode;
 
 public:
     SoftwareRenderer(const GameState& gameState, const WADFile& wadFile);
@@ -53,6 +52,6 @@ public:
 
     virtual void RenderFrame(FrameBuffer& frameBuffer) override;
     Frame*       GetLastFrame() const;
-    void         SetMode(RenderingMode renderingMode);
+    void         SetMode(RendererBase::RenderingMode renderingMode);
 };
 } // namespace rtdoom
