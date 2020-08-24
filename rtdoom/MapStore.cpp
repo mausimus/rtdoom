@@ -6,7 +6,7 @@ using namespace std::literals::string_literals;
 
 namespace rtdoom
 {
-MapStore::MapStore() {}
+MapStore::MapStore() { }
 
 void MapStore::Load(const std::string& mapFolder)
 {
@@ -32,6 +32,19 @@ void MapStore::Load(const std::map<std::string, std::vector<char>>& mapLumps)
     m_things     = Helpers::LoadEntities<Thing>(mapLumps.at("THINGS"s));
 }
 
+void MapStore::LoadGL(const std::map<std::string, std::vector<char>>& glLumps)
+{
+    const auto& glVertexes = glLumps.at("GL_VERT"s);
+    if(strncmp(glVertexes.data(), "gNd2", 4) != 0)
+    {
+        throw std::runtime_error("Only V2 glBSP format is supported.");
+    }
+    m_glVertexes = Helpers::LoadEntities<GLVertex>(glVertexes, 4);
+    m_glSegments = Helpers::LoadEntities<GLSegment>(glLumps.at("GL_SEGS"s));
+    m_subSectors = Helpers::LoadEntities<SubSector>(glLumps.at("GL_SSECT"s));
+    m_nodes      = Helpers::LoadEntities<Node>(glLumps.at("GL_NODES"s));
+}
+
 void MapStore::GetStartingPosition(signed short& x, signed short& y, unsigned short& a) const
 {
     auto foundPlayer = find_if(m_things.cbegin(), m_things.cend(), [](const Thing& t) { return t.type == 1; });
@@ -45,5 +58,5 @@ void MapStore::GetStartingPosition(signed short& x, signed short& y, unsigned sh
     a                        = playerThing.a;
 }
 
-MapStore::~MapStore() {}
+MapStore::~MapStore() { }
 } // namespace rtdoom

@@ -92,6 +92,7 @@ protected:
     };
 
     LumpType GetLumpType(const Lump& lumpName) const;
+    void TryLoadGWA(const std::string& fileName);
 
     std::map<std::string, std::shared_ptr<Patch>> m_patches;
 

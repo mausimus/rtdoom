@@ -74,8 +74,15 @@ void Viewport::DrawSteps()
 {
     void* pixelBuffer = new int[m_width * m_height];
     memset(pixelBuffer, 0x00ffffff, sizeof(int) * m_width * m_height);
+    int knt = 0;
 
     m_frameBuffer->Attach(pixelBuffer, [&]() {
+        knt++;
+        knt %= 2;
+        if(knt != 1)
+        {
+            return;        
+		}
         void* sdlBuffer;
         int   pitch;
 

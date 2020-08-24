@@ -3,7 +3,7 @@
 
 namespace rtdoom
 {
-Renderer::Renderer(const GameState& gameState) : m_gameState(gameState) {}
+Renderer::Renderer(const GameState& gameState) : RendererBase(gameState) {}
 
 bool Renderer::IsVisible(int x, int y, FrameBuffer& frameBuffer)
 {

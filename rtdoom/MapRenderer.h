@@ -16,6 +16,6 @@ public:
     MapRenderer(const GameState& gameState);
     ~MapRenderer();
 
-    virtual void RenderFrame(FrameBuffer& frameBuffer) override;
+    void RenderFrame(FrameBuffer& frameBuffer);
 };
 } // namespace rtdoom

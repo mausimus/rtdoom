@@ -260,3 +260,6 @@ paket-files/
 __pycache__/
 *.pyc
 *.wad
+/rtdoom/freedoom1.WAx
+/rtdoom/GLRenderer-v1.cpp
+/rtdoom/GLRenderer-v2.cpp

@@ -12,6 +12,19 @@ struct Point
 
     float x;
     float y;
+
+    bool operator<(const Point& p) const
+    {
+        if(x == p.x)
+        {
+            return y < p.y;        
+        }
+        return x < p.x;
+    }
+
+    bool operator==(Point& p) {
+        return x == p.x && y == p.y;
+    }
 };
 
 struct Vertex : Point
@@ -73,10 +86,13 @@ struct Side
          const std::string upperTexture,
          int               xOffset,
          int               yOffset) :
-        sector {sector},
+        sideless(false), sector {sector},
         lowerTexture {lowerTexture}, middleTexture {middleTexture}, upperTexture {upperTexture}, xOffset {xOffset}, yOffset {yOffset}
     {}
 
+    Side() : sideless(true) { }
+
+    bool        sideless;
     Sector      sector;
     int         xOffset;
     int         yOffset;
@@ -102,6 +118,17 @@ struct Segment : Line
 
     bool isHorizontal = s.y == e.y;
     bool isVertical   = s.x == e.x;
+};
+
+struct SubSector
+{
+    SubSector(int subSectorId, int sectorId, std::vector<std::shared_ptr<Segment>> segments) :
+        subSectorId {subSectorId}, sectorId {sectorId}, segments(segments)
+    { }
+
+    int                                   subSectorId;
+    int                                   sectorId;
+    std::vector<std::shared_ptr<Segment>> segments;
 };
 
 struct Vector

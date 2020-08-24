@@ -17,15 +17,36 @@ public:
         signed short   offset;
     };
 
+    struct GLSegment
+    {
+        unsigned short startVertex;
+        unsigned short endVertex;
+        unsigned short lineDef;
+        unsigned short side;
+        unsigned short partnerSeg;
+    };
+    //#define VERT_IS_GL (1 << 15)
+
     struct SubSector
     {
         unsigned short numSegments;
         unsigned short firstSegment;
     };
 
+/*    struct GLSubSector : SubSector
+    { };*/
+
     struct Vertex
     {
         signed short x;
+        signed short y;
+    };
+
+    struct GLVertex
+    {
+        signed short xf;
+        signed short x;
+        signed short yf;
         signed short y;
     };
 
@@ -42,7 +63,7 @@ public:
 
     struct SideDef
     {
-        SideDef() {}
+        SideDef() { }
 
         signed short   xOffset;
         signed short   yOffset;
@@ -80,6 +101,9 @@ public:
         unsigned short rightChild;
         unsigned short leftChild;
     };
+    /*
+    struct GLNode : Node
+    { };*/
 
     struct Thing
     {
@@ -100,8 +124,14 @@ public:
     std::vector<Node>      m_nodes;
     std::vector<Thing>     m_things;
 
+    std::vector<GLVertex>    m_glVertexes;
+    std::vector<GLSegment>   m_glSegments;
+/*    std::vector<GLSubSector> m_glSubSectors;
+    std::vector<GLNode>      m_glNodes;*/
+
     void Load(const std::string& mapFolder);
     void Load(const std::map<std::string, std::vector<char>>& mapLumps);
+    void LoadGL(const std::map<std::string, std::vector<char>>& glLumps);
     void GetStartingPosition(signed short& x, signed short& y, unsigned short& a) const;
 
     MapStore();
