@@ -54,10 +54,10 @@ Built on Windows / Visual Studio 2017 using C++ 17 profile.
 No assets included - you will need to drop off a .wad file from either the original Doom
 (1 or 2, shareware is ok) or the [Freedoom](https://freedoom.github.io/) project into the .exe directory!
 
-### OpenGL Renderer
+### Bonus - OpenGL Renderer
 
-* [GLRenderer.cpp](rtdoom/GLRenderer.cpp) and [GLContext.cpp](rtdoom/GLContext.cpp) contain an additional simple renderer
-implemented using OpenGL 3.3 core profile, press 4 to switch the view to hardware-accelerated OpenGL.
+* [GLRenderer.cpp](rtdoom/GLRenderer.cpp) and [GLContext.cpp](rtdoom/GLContext.cpp) contain a very basic 
+hardware-accelerated renderer implemented using OpenGL 3.3 core profile, press 4 to switch the view to OpenGL.
 You will need to supply a V2 .gwa file alongside the .wad containing GL node data,
 which can be generated using [glBSP](http://glbsp.sourceforge.net/).
 
