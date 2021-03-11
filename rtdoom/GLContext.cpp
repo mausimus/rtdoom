@@ -226,10 +226,13 @@ void GLContext::CompileShaders(const char* vertexShaderSource, const char* fragm
 
 GLContext::~GLContext()
 {
-    glDeleteVertexArrays(1, &m_VAO);
-    glDeleteBuffers(1, &m_VBO);
-    glDeleteBuffers(1, &m_EBO);
-    glDeleteProgram(m_shaderProgram);
+    if(m_VAO)
+    {
+        glDeleteVertexArrays(1, &m_VAO);
+        glDeleteBuffers(1, &m_VBO);
+        glDeleteBuffers(1, &m_EBO);
+        glDeleteProgram(m_shaderProgram);
+    }
 }
 
 void GLContext::BindMap()
