@@ -156,7 +156,10 @@ WADFile::WADFile(const std::string& fileName)
                 for(const auto& p : patches)
                 {
                     const auto pi = m_patchNames[p.patch];
-                    PastePatch(t.get(), m_patches[pi].get(), p.originx, p.originy);
+                    if(m_patches.find(pi) != m_patches.end())
+                    {
+                        PastePatch(t.get(), m_patches[pi].get(), p.originx, p.originy);
+                    }
                 }
 
                 m_textures.insert(make_pair(t->name, t));
