@@ -298,15 +298,18 @@ void MapDef::BuildSegments()
         m_segments.reserve(m_store.m_segments.size());
         for(const auto& mapSegment : m_store.m_segments)
         {
-            const auto& mapStartVertex = m_store.m_vertexes[mapSegment.startVertex];
-            const auto& mapEndVertex   = m_store.m_vertexes[mapSegment.endVertex];
-            ProcessSegment(mapStartVertex.x,
-                           mapStartVertex.y,
-                           mapEndVertex.x,
-                           mapEndVertex.y,
-                           mapSegment.lineDef,
-                           mapSegment.direction,
-                           mapSegment.offset);
+            if(mapSegment.startVertex < m_store.m_vertexes.size() && mapSegment.endVertex < m_store.m_vertexes.size())
+            {
+                const auto& mapStartVertex = m_store.m_vertexes[mapSegment.startVertex];
+                const auto& mapEndVertex   = m_store.m_vertexes[mapSegment.endVertex];
+                ProcessSegment(mapStartVertex.x,
+                               mapStartVertex.y,
+                               mapEndVertex.x,
+                               mapEndVertex.y,
+                               mapSegment.lineDef,
+                               mapSegment.direction,
+                               mapSegment.offset);
+            }
         }
     }
 }
