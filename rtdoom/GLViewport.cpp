@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "GLViewport.h"
+#include "glad/glad.h"
 
 #include <SDL.h>
 
@@ -21,6 +22,12 @@ void GLViewport::Initialize()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
     SDL_GL_CreateContext(m_window);
+
+    if(!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
+    {
+        throw new std::runtime_error("Failed to initialize GLAD");
+    }
+
     SDL_GL_SetSwapInterval(1);
 }
 

@@ -2,8 +2,11 @@
 
 #include <SDL.h>
 #include <SDL_render.h>
+#include "glad/glad.h"
 
 #include "GameLoop.h"
+
+#define ENABLE_GL 1
 
 using namespace rtdoom;
 using namespace std::string_literals;
@@ -83,10 +86,12 @@ int main(int /*argc*/, char** /*argv*/)
                         gameLoop.SetRenderingMode(Renderer::RenderingMode::Textured);
                         SDL_SetWindowTitle(sdlWindow, "rtdoom (Textured)");
                         break;
+#if(ENABLE_GL)
                     case SDLK_4:
                         gameLoop.SetRenderingMode(Renderer::RenderingMode::OpenGL);
                         SDL_SetWindowTitle(sdlWindow, "rtdoom (OpenGL)");
                         break;
+#endif
                     case SDLK_s:
                         if(p)
                         {
@@ -108,6 +113,7 @@ int main(int /*argc*/, char** /*argv*/)
                     case SDLK_d:
                         cout << "Player position: (" << gameLoop.Player().x << ", " << gameLoop.Player().y << ", " << gameLoop.Player().a
                              << ")" << endl;
+                        break;
                     default:
                         break;
                     }
@@ -146,24 +152,44 @@ void InitSDL(SDL_Renderer*& sdlRenderer, SDL_Window*& sdlWindow)
 {
     if(SDL_Init(SDL_INIT_EVERYTHING))
     {
-        throw std::runtime_error("Unable to initialize SDL");
+        throw std::runtime_error("Unable to initialize SDL: " + std::string(SDL_GetError()));
     }
 
     atexit(SDL_Quit);
+
+#if(ENABLE_GL)
+    SDL_GL_LoadLibrary(NULL);
+#endif
 
     if constexpr(s_multisamplingLevel > 1.0f)
     {
         SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
     }
 
+    auto flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE;
+
+#if(ENABLE_GL)
+    flags |= SDL_WINDOW_OPENGL;
+#endif
+
     sdlWindow = SDL_CreateWindow("rtdoom",
                                  SDL_WINDOWPOS_UNDEFINED,
                                  SDL_WINDOWPOS_UNDEFINED,
                                  s_displayX,
                                  s_displayY,
-                                 SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
+                                 flags);
+
+    if(!sdlWindow)
+    {
+        throw std::runtime_error("Unable to create SDL window: " + std::string(SDL_GetError()));
+    }
 
     sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED);
+
+    if(!sdlRenderer)
+    {
+        throw std::runtime_error("Unable to create SDL renderer: " + std::string(SDL_GetError()));    
+    }
 }
 
 void DestroySDL(SDL_Renderer* sdlRenderer, SDL_Window* sdlWindow)
