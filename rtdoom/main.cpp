@@ -91,6 +91,10 @@ int main(int /*argc*/, char** /*argv*/)
                         gameLoop.SetRenderingMode(Renderer::RenderingMode::OpenGL);
                         SDL_SetWindowTitle(sdlWindow, "rtdoom (OpenGL)");
                         break;
+#else
+                    case SDLK_4:
+                        std::cout << "OpenGL not enabled, recompile with ENABLE_GL = 1" << std::endl;
+                        break;
 #endif
                     case SDLK_s:
                         if(p)

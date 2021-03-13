@@ -78,9 +78,9 @@ void GLContext::LoadTexture(std::shared_ptr<Texture> wtex, int i)
 void GLContext::Initialize()
 {
     glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &m_maxTextureUnits);
-    if(m_maxTextureUnits > 32)
+    if(m_maxTextureUnits > 16)
     {
-        m_maxTextureUnits = 32;
+        m_maxTextureUnits = 16;
     }
 }
 
